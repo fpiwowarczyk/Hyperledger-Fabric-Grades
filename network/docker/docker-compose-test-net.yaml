@@ -1,3 +1,8 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 version: '2.4'
 
 volumes:
@@ -5,7 +10,7 @@ volumes:
   peer0.org1.example.com:
   peer0.org2.example.com:
 
-networs:
+networks:
   test:
     name: fabric_test
 
@@ -14,9 +19,9 @@ services:
   orderer.example.com:
     container_name: orderer.example.com
     image: hyperledger/fabric-orderer:latest
-    labes:
+    labels:
       service: hyperledger-fabric
-    enviroment:
+    environment:
       - FABRIC_LOGGING_SPEC=INFO
       - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
       - ORDERER_GENERAL_LISTENPORT=7050
@@ -90,7 +95,6 @@ services:
     networks:
       - test
 
-
   peer0.org2.example.com:
     container_name: peer0.org2.example.com
     image: hyperledger/fabric-peer:latest
@@ -127,6 +131,7 @@ services:
       - 9051:9051
     networks:
       - test
+
   cli:
     container_name: cli
     image: hyperledger/fabric-tools:latest
@@ -150,6 +155,3 @@ services:
       - peer0.org2.example.com
     networks:
       - test
-
-
-

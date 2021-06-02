@@ -1,6 +1,11 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 version: '2.4'
 
-networks: 
+networks:
   test:
     name: fabric_test
 
@@ -10,7 +15,7 @@ services:
     image: hyperledger/fabric-ca:latest
     labels:
       service: hyperledger-fabric
-    enviroment:
+    environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-org1
       - FABRIC_CA_SERVER_TLS_ENABLED=true
@@ -44,9 +49,9 @@ services:
 
   ca_orderer:
     image: hyperledger/fabric-ca:latest
-    labels: 
+    labels:
       service: hyperledger-fabric
-    envrioment: 
+    environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-orderer
       - FABRIC_CA_SERVER_TLS_ENABLED=true
@@ -54,9 +59,8 @@ services:
     ports:
       - "9054:9054"
     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
-    volumes: 
+    volumes:
       - ../organizations/fabric-ca/ordererOrg:/etc/hyperledger/fabric-ca-server
     container_name: ca_orderer
-    networs:
+    networks:
       - test
-
