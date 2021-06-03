@@ -34,7 +34,7 @@ public class App {
         Path networkConfigPath = Paths.get("..", "test-network", "organizations", "peerOrganizations", "org1.example.com", "connection-org1.yaml");
 
         Gateway.Builder builder = Gateway.createBuilder();
-        builder.identity(wallet, "appUser").networkConfig(networkConfigPath).discovery(true);
+        builder.identity(wallet, "appUser1").networkConfig(networkConfigPath).discovery(true);
         return builder.connect();
     }
 
@@ -56,17 +56,17 @@ public class App {
 
             byte[] result;
 
-            System.out.println("Submit Transaction: InitLedger creates the initial set of assets on the ledger.");
-            contract.submitTransaction("InitLedger");
+//            System.out.println("Submit Transaction: InitLedger creates the initial set of assets on the ledger.");
+//            contract.submitTransaction("InitLedger");
 
             System.out.println("\n");
             result = contract.evaluateTransaction("GetAllAssets");
             System.out.println("Evaluate Transaction: GetAllAssets, result: " + new String(result));
 
             System.out.println("\n");
-            System.out.println("Submit Transaction: CreateAsset asset13");
+            System.out.println("Submit Transaction: CreateAsset asset14");
             //CreateAsset creates an asset with ID asset13, color yellow, owner Tom, size 5 and appraisedValue of 1300
-            contract.submitTransaction("CreateAsset", "asset13", "yellow", "5", "Tom", "1300");
+            contract.submitTransaction("CreateAsset", "asset14", "yellow", "5", "Tom", "1400");
 
             System.out.println("\n");
             System.out.println("Evaluate Transaction: ReadAsset asset13");

@@ -94,14 +94,14 @@ public class RegisterUser {
 		};
 
 		// Register the user, enroll the user, and import the new identity into the wallet.
-		RegistrationRequest registrationRequest = new RegistrationRequest("appUser");
+		RegistrationRequest registrationRequest = new RegistrationRequest("appUser1");
 		registrationRequest.setAffiliation("org1.department1");
-		registrationRequest.setEnrollmentID("appUser");
+		registrationRequest.setEnrollmentID("appUser1");
 		String enrollmentSecret = caClient.register(registrationRequest, admin);
-		Enrollment enrollment = caClient.enroll("appUser", enrollmentSecret);
+		Enrollment enrollment = caClient.enroll("appUser1", enrollmentSecret);
 		Identity user = Identities.newX509Identity("Org1MSP", enrollment);
-		wallet.put("appUser", user);
-		System.out.println("Successfully enrolled user \"appUser\" and imported it into the wallet");
+		wallet.put("appUser1", user);
+		System.out.println("Successfully enrolled user \"appUser1\" and imported it into the wallet");
 	}
 
 }
