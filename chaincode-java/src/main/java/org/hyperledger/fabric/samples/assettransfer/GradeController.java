@@ -2,13 +2,20 @@ package org.hyperledger.fabric.samples.assettransfer;
 
 import org.hyperledger.fabric.contract.Context;
 import com.owlike.genson.Genson;
-import com.owlike.genson.annotation.JsonProperty;
 import org.hyperledger.fabric.contract.ContractInterface;
-import org.hyperledger.fabric.contract.annotation.*;
+import org.hyperledger.fabric.contract.annotation.Contact;
+import org.hyperledger.fabric.contract.annotation.Contract;
+import org.hyperledger.fabric.contract.annotation.Default;
+import org.hyperledger.fabric.contract.annotation.Info;
+import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
+import org.hyperledger.fabric.shim.ledger.KeyValue;
+import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Contract(
         name = "grades",
@@ -40,14 +47,23 @@ public class GradeController implements ContractInterface {
     public void initGrades(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
 
-        addGrade(ctx, "grade1", GradeValue.TWOPLUS.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGrade(ctx, "grade1", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
         addGrade(ctx, "grade2", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
         addGrade(ctx, "grade3", GradeValue.FOUR.value, "IT", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGrade(ctx, "grade4", GradeValue.THREE.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGrade(ctx, "grade4", GradeValue.THREEPLUS.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
 
     }
 
 
+    /**
+     * @param ctx
+     * @param gradeId
+     * @param gradeValue
+     * @param subject
+     * @param teacher
+     * @param student
+     * @return
+     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade addGrade(final Context ctx, final String gradeId, final Double gradeValue,
                           final String subject, final String teacher, final String student) {
@@ -59,7 +75,7 @@ public class GradeController implements ContractInterface {
             throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_ALREADY_EXISTS.toString());
         }
 
-        if (checkGradeValue(gradeValue)) {
+        if (!checkGradeValue(gradeValue)) {
             String errorMessage = String.format("Bad grade value %s", gradeValue);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.WRONG_GRADE_VALUE.toString());
@@ -72,6 +88,11 @@ public class GradeController implements ContractInterface {
         return grade;
     }
 
+    /**
+     * @param ctx
+     * @param gradeId
+     * @return
+     */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Grade ReadGrade(final Context ctx, final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
@@ -88,6 +109,15 @@ public class GradeController implements ContractInterface {
         return grade;
     }
 
+    /**
+     * @param ctx
+     * @param gradeId
+     * @param gradeValue
+     * @param subject
+     * @param teacher
+     * @param student
+     * @return
+     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade UpdateGrade(final Context ctx, final String gradeId, final Double gradeValue, final String subject, final String teacher, final String student) {
         ChaincodeStub stub = ctx.getStub();
@@ -98,7 +128,7 @@ public class GradeController implements ContractInterface {
             throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_NOT_FOUND.toString());
         }
 
-        if (checkGradeValue(gradeValue)) {
+        if (!checkGradeValue(gradeValue)) {
             String errorMessage = String.format("Bad grade value %s", gradeValue);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.WRONG_GRADE_VALUE.toString());
@@ -111,6 +141,10 @@ public class GradeController implements ContractInterface {
         return newGrade;
     }
 
+    /**
+     * @param ctx
+     * @param gradeId
+     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void DeleteGrade(final Context ctx, final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
@@ -124,7 +158,11 @@ public class GradeController implements ContractInterface {
         stub.delState(gradeId);
     }
 
-
+    /**
+     * @param ctx
+     * @param gradeId
+     * @return
+     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public boolean gradeExists(final Context ctx, final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
@@ -133,17 +171,39 @@ public class GradeController implements ContractInterface {
         return (assetJSON != null && !assetJSON.isEmpty());
     }
 
-    private void checkIfGradeExist() {
+    /**
+     *
+     * @param ctx
+     * @return
+     */
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    public String getAllGrades(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
 
+        List<Grade> queryResults = new ArrayList<Grade>();
+
+        //To get all grades we are using getStateByRande with empty strings
+        // as arguments. It is interpreted as get all keys from beginning to end.
+        QueryResultsIterator<KeyValue> results = stub.getStateByRange("", "");
+
+        for (KeyValue result : results) {
+            Grade grade = genson.deserialize(result.getStringValue(), Grade.class);
+            queryResults.add(grade);
+            System.out.println(grade.toString());
+        }
+
+        final String response = genson.serialize(queryResults);
+
+        return response;
     }
 
-    private boolean checkGradeValue(Double value) {
-        return value.equals(2.0) ||
-                value.equals(2.5) ||
-                value.equals(3.0) ||
-                value.equals(3.5) ||
-                value.equals(4.0) ||
-                value.equals(4.5) ||
-                value.equals(5.0);
+    private boolean checkGradeValue(final Double value) {
+        return value.equals(2.0)
+                || value.equals(2.5)
+                || value.equals(3.0)
+                || value.equals(3.5)
+                || value.equals(4.0)
+                || value.equals(4.5)
+                || value.equals(5.0);
     }
 }
