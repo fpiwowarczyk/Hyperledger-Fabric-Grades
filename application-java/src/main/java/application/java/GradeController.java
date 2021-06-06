@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.cert.ocsp.Req;
 import org.hyperledger.fabric.gateway.*;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
@@ -17,11 +16,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 
 @RestController
@@ -31,7 +28,6 @@ public class GradeController {
         System.setProperty("org.hyperledger.fabric.sdk.service_discovery.as_localhost", "true");
     }
 
-    private static boolean userLogged;
     private static Logger LOGGER = LogManager.getLogger(GradeController.class);
     private Network network;
     private Contract contract;
@@ -44,16 +40,11 @@ public class GradeController {
 
 
     GradeController() throws IOException {
-        userLogged = false;
-
-
-
         objectMapper = new ObjectMapper();
-
     }
 
     @GetMapping("/logIn")
-    public void logIn(@RequestParam Organizations org, @RequestParam String userName) {
+    public String logIn(@RequestParam Organizations org, @RequestParam String userName) {
         //Current location of connection file for organization
         networkConfigPath = Paths.get("test-network", "organizations", "peerOrganizations", org.name().toLowerCase() + ".example.com", "connection-" + org.name().toLowerCase() + ".yaml");
         try {
@@ -61,20 +52,28 @@ public class GradeController {
             wallet = Wallets.newFileSystemWallet(walletPath);
             builder = Gateway.createBuilder();
             builder.identity(wallet, userName).networkConfig(networkConfigPath).discovery(true);
-            userLogged = true;
         } catch (Exception e) {
             LOGGER.error("No such user as " + userName);
         }
+        String returnMsg = "Successfully logged user " + userName;
+        System.out.println(returnMsg);
+        return returnMsg;
     }
 
     @GetMapping("/addWallet")
-    public void addWallet(@RequestParam Organizations org) throws Exception {
+    public String addWallet(@RequestParam Organizations org) throws Exception {
         enrollAdmin(org);
+        String returnMsg = "Walled added";
+        System.out.println(returnMsg);
+        return returnMsg;
     }
 
     @PostMapping("/addUser")
-    public void addUser(@RequestParam String userName, @RequestParam Organizations org) throws Exception {
+    public String addUser(@RequestParam String userName, @RequestParam Organizations org) throws Exception {
         registerUser(userName, org);
+        String returnMsg = "User added: " + userName;
+        System.out.println(returnMsg);
+        return returnMsg;
     }
 
 
@@ -104,6 +103,21 @@ public class GradeController {
             System.err.println(e);
         }
         return objectMapper.readValue(result, Grade.class);
+    }
+
+    @GetMapping("/student")
+    public List<Grade> getGradesForStudent(@RequestParam String studentName) throws IOException {
+        LOGGER.info("Getting grades for " + studentName);
+        try (Gateway gateway = builder.connect()) {
+            network = gateway.getNetwork("mychannel");
+            contract = network.getContract("grades");
+            result = contract.evaluateTransaction("getGradesForStudent", studentName);
+        } catch (Exception e) {
+            LOGGER.error(e);
+        }
+        // Map Json to Grades object
+        return objectMapper.readValue(result, new TypeReference<List<Grade>>() {
+        });
     }
 
     @PostMapping("/grades")
