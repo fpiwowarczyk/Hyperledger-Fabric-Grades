@@ -21,3 +21,5 @@ build
 package-lock.json
 application.properties
 log4j.properties
+org1Wallet
+org2Wallet
