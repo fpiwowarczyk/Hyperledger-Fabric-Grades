@@ -47,17 +47,16 @@ public class GradeController implements ContractInterface {
     public void initGrades(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
 
-        addGrade(ctx, "grade1", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGrade(ctx, "grade2", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGrade(ctx, "grade3", GradeValue.FOUR.value, "IT", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGrade(ctx, "grade4", GradeValue.THREEPLUS.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "Filip Piwowarczyk0", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "Filip Piwowarczyk1", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "Filip Piwowarczyk2", GradeValue.FOUR.value, "IT", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "Filip Piwowarczyk3", GradeValue.THREEPLUS.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
 
     }
 
 
     /**
      * @param ctx
-     * @param gradeId
      * @param gradeValue
      * @param subject
      * @param teacher
@@ -65,15 +64,9 @@ public class GradeController implements ContractInterface {
      * @return
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public Grade addGrade(final Context ctx, final String gradeId, final Double gradeValue,
+    public Grade addGrade(final Context ctx, final Double gradeValue,
                           final String subject, final String teacher, final String student) {
         ChaincodeStub stub = ctx.getStub();
-
-        if (gradeExists(ctx, gradeId)) {
-            String errorMessage = String.format("Grade %s already exists", gradeId);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_ALREADY_EXISTS.toString());
-        }
 
         if (!checkGradeValue(gradeValue)) {
             String errorMessage = String.format("Bad grade value %s", gradeValue);
@@ -81,9 +74,43 @@ public class GradeController implements ContractInterface {
             throw new ChaincodeException(errorMessage, GradeControllerErrors.WRONG_GRADE_VALUE.toString());
         }
 
+        String gradeId = getGradeId(ctx, student);
+
+
         Grade grade = new Grade(gradeId, gradeValue, subject, teacher, student);
-        String assetJSON = genson.serialize(grade);
-        stub.putStringState(gradeId, assetJSON);
+        String gradeJSON = genson.serialize(grade);
+        stub.putStringState(gradeId, gradeJSON);
+
+        return grade;
+    }
+
+    /**
+     * @param ctx
+     * @param gradeId
+     * @param subject
+     * @param teacher
+     * @param student
+     * @return
+     */
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public Grade addGradeWithId(final Context ctx, final String gradeId, final Double gradeValue, final String subject, final String teacher, final String student) {
+        ChaincodeStub stub = ctx.getStub();
+
+        if (!checkGradeValue(gradeValue)) {
+            String errorMessage = String.format("Bad grade value %s", gradeValue);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, GradeControllerErrors.WRONG_GRADE_VALUE.toString());
+        }
+
+        if (gradeExists(ctx, gradeId)) {
+            String errorMessage = String.format("Grade with id %s already exists", gradeId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_ALREADY_EXISTS.toString());
+        }
+
+        Grade grade = new Grade(gradeId, gradeValue, subject, teacher, student);
+        String gradeJSON = genson.serialize(grade);
+        stub.putStringState(gradeId, gradeJSON);
 
         return grade;
     }
@@ -172,7 +199,6 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     *
      * @param ctx
      * @return
      */
@@ -195,6 +221,16 @@ public class GradeController implements ContractInterface {
         final String response = genson.serialize(queryResults);
 
         return response;
+    }
+
+    private String getGradeId(final Context ctx, final String student) {
+        int i = 0;
+        String output = student + i;
+        while (gradeExists(ctx, output)) {
+            i++;
+            output = student + i;
+        }
+        return output;
     }
 
     private boolean checkGradeValue(final Double value) {

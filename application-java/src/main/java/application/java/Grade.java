@@ -24,12 +24,12 @@ public class Grade {
         this.gradeId = gradeId;
     }
 
-    public Double getGradeValue() {
+    public Double getGrade() {
         return grade;
     }
 
-    public void setGradeValue(Double gradeValue) {
-        this.grade = gradeValue;
+    public void setGradeValue(Double grade) {
+        this.grade = grade;
     }
 
     public String getSubject() {
@@ -59,9 +59,9 @@ public class Grade {
     public Grade() {
     }
 
-    public Grade(String gradeId, Double gradeValue, String subject, String teacher, String student) {
+    public Grade(String gradeId, Double grade, String subject, String teacher, String student) {
         this.gradeId = gradeId;
-        this.grade = gradeValue;
+        this.grade = grade;
         this.subject = subject;
         this.teacher = teacher;
         this.student = student;
@@ -84,13 +84,13 @@ public class Grade {
                 new String[]{that.getGradeId(), that.getSubject(), that.getTeacher(), that.getStudent()})
                 &&
                 Objects.deepEquals(
-                        new Double[]{getGradeValue()},
-                        new Double[]{that.getGradeValue()});
+                        new Double[]{getGrade()},
+                        new Double[]{that.getGrade()});
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getGradeId(), getGradeValue(), getSubject(), getTeacher(), getStudent());
+        return Objects.hash(getGradeId(), getGrade(), getSubject(), getTeacher(), getStudent());
     }
 
     @Override

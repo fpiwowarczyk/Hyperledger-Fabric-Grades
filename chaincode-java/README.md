@@ -10,7 +10,10 @@ To run network
 ./network.sh up createChannel
 ```
 
-
+TODO:
+ - Dodać możliwośc wyboru organizacji i użytkownika
+ - Dodać lepszy model tworzenia klucza i wartości --> Mechanizm zgód
+ - Dodać mechanizm zgód do chaincodu
 To deploy chaincode in java
 ``` Bash
 cd ../network
@@ -36,3 +39,5 @@ export CORE_PEER_ADDRESS=localhost:7051
 #Or run script in network file 
 . ./asOrg1.sh
 ```
+
+

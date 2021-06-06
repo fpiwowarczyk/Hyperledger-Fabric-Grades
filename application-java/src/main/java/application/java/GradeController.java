@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -72,10 +71,55 @@ public class GradeController {
         return objectMapper.readValue(result, Grade.class);
     }
 
-//    @PostMapping("/grades"){
-//
-//    }
+    @PostMapping("/grades")
+    public Grade addGrade(@RequestParam String gradeId,
+                          @RequestParam Double gradeValue,
+                          @RequestParam String subject,
+                          @RequestParam String teacher,
+                          @RequestParam String student) throws IOException {
+        try (Gateway gateway = builder.connect()) {
+            LOGGER.info("Add grade with: " + gradeId);
+            network = gateway.getNetwork("mychannel");
+            contract = network.getContract("grades");
+            result = contract.submitTransaction("addGrade", gradeId, gradeValue.toString(), subject, teacher, student);
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+
+        return objectMapper.readValue(result, Grade.class);
+    }
+
+    @PutMapping("/grades/{gradeId}")
+    public Grade updateGrade(@PathVariable String gradeId,
+                             @RequestParam Double gradeValue,
+                             @RequestParam String subject,
+                             @RequestParam String teacher,
+                             @RequestParam String student) throws IOException {
+        try (Gateway gateway = builder.connect()) {
+            LOGGER.info("Update grade with: " + gradeId);
+            network = gateway.getNetwork("mychannel");
+            contract = network.getContract("grades");
+            result = contract.submitTransaction("UpdateGrade", gradeId, gradeValue.toString(), subject, teacher, student);
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+
+        return objectMapper.readValue(result, Grade.class);
+    }
 
 
+    @DeleteMapping("/grades/{gradeId}")
+    public Grade deleteGrade(@PathVariable String gradeId) throws IOException {
+        try (Gateway gateway = builder.connect()) {
+            LOGGER.info("Delete grade with id: " + gradeId);
+            network = gateway.getNetwork("mychannel");
+            contract = network.getContract("grades");
+            result = contract.evaluateTransaction("ReadGrade", gradeId);
+            contract.submitTransaction("DeleteGrade", gradeId);
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+        return objectMapper.readValue(result, Grade.class);
 
+    }
 }
