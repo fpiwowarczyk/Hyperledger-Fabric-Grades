@@ -16,6 +16,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.google.guava:guava:29.0-jre'
     implementation 'org.hyperledger.fabric:fabric-gateway-java:2.1.1'
+    implementation 'org.jetbrains:annotations:20.1.0'
     compile "org.springdoc:springdoc-openapi-ui:1.5.2"
     testImplementation('org.springframework.boot:spring-boot-starter-test')
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'

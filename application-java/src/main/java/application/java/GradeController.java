@@ -4,13 +4,25 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.cert.ocsp.Req;
 import org.hyperledger.fabric.gateway.*;
+import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.security.CryptoSuiteFactory;
+import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
+import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.NotNull;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
 
 @RestController
 public class GradeController {
@@ -19,29 +31,52 @@ public class GradeController {
         System.setProperty("org.hyperledger.fabric.sdk.service_discovery.as_localhost", "true");
     }
 
+    private static boolean userLogged;
     private static Logger LOGGER = LogManager.getLogger(GradeController.class);
     private Network network;
     private Contract contract;
     private byte[] result;
     private final ObjectMapper objectMapper;
-    private final Path walletPath;
-    private final Wallet wallet;
-    private final Path networkConfigPath;
+    private Path walletPath;
+    private Wallet wallet;
+    private Path networkConfigPath;
     Gateway.Builder builder;
 
 
     GradeController() throws IOException {
-        walletPath = Paths.get("wallet");
-        wallet = Wallets.newFileSystemWallet(walletPath);
+        userLogged = false;
 
-        //Current location of connection file for organization
-        networkConfigPath = Paths.get("test-network", "organizations", "peerOrganizations", "org1.example.com", "connection-org1.yaml");
 
-        builder = Gateway.createBuilder();
-        builder.identity(wallet, "appUser1").networkConfig(networkConfigPath).discovery(true);
+
         objectMapper = new ObjectMapper();
 
     }
+
+    @GetMapping("/logIn")
+    public void logIn(@RequestParam Organizations org, @RequestParam String userName) {
+        //Current location of connection file for organization
+        networkConfigPath = Paths.get("test-network", "organizations", "peerOrganizations", org.name().toLowerCase() + ".example.com", "connection-" + org.name().toLowerCase() + ".yaml");
+        try {
+            walletPath = Paths.get(org.name().toLowerCase() + "Wallet");
+            wallet = Wallets.newFileSystemWallet(walletPath);
+            builder = Gateway.createBuilder();
+            builder.identity(wallet, userName).networkConfig(networkConfigPath).discovery(true);
+            userLogged = true;
+        } catch (Exception e) {
+            LOGGER.error("No such user as " + userName);
+        }
+    }
+
+    @GetMapping("/addWallet")
+    public void addWallet(@RequestParam Organizations org) throws Exception {
+        enrollAdmin(org);
+    }
+
+    @PostMapping("/addUser")
+    public void addUser(@RequestParam String userName, @RequestParam Organizations org) throws Exception {
+        registerUser(userName, org);
+    }
+
 
     @GetMapping("/grades")
     public List<Grade> getAllGrades() throws IOException {
@@ -72,16 +107,14 @@ public class GradeController {
     }
 
     @PostMapping("/grades")
-    public Grade addGrade(@RequestParam String gradeId,
-                          @RequestParam Double gradeValue,
+    public Grade addGrade(@RequestParam Double gradeValue,
                           @RequestParam String subject,
                           @RequestParam String teacher,
                           @RequestParam String student) throws IOException {
         try (Gateway gateway = builder.connect()) {
-            LOGGER.info("Add grade with: " + gradeId);
             network = gateway.getNetwork("mychannel");
             contract = network.getContract("grades");
-            result = contract.submitTransaction("addGrade", gradeId, gradeValue.toString(), subject, teacher, student);
+            result = contract.submitTransaction("addGrade", gradeValue.toString(), subject, teacher, student);
         } catch (Exception e) {
             System.err.println(e);
         }
@@ -120,6 +153,81 @@ public class GradeController {
             System.err.println(e);
         }
         return objectMapper.readValue(result, Grade.class);
+    }
 
+    private void enrollAdmin(@NotNull Organizations org) throws Exception {
+        Properties props = new Properties();
+        HFCAClient caClient = null;
+        String mspId = "";
+        props.put("pemFile", "test-network/organizations/peerOrganizations/" + org.name().toLowerCase() + ".example.com/ca/ca." + org.name().toLowerCase() + ".example.com-cert.pem");
+        props.put("allowAllHostNames", "true");
+
+        if (org.equals(Organizations.ORG1)) {
+            caClient = HFCAClient.createNewInstance("https://localhost:7054", props);
+            mspId = "Org1MSP";
+        } else if (org.equals(Organizations.ORG2)) {
+            caClient = HFCAClient.createNewInstance("https://localhost:8054", props);
+            mspId = "Org2MSP";
+        }
+        CryptoSuite cryptoSuite = CryptoSuiteFactory.getDefault().getCryptoSuite();
+        caClient.setCryptoSuite(cryptoSuite);
+
+        Wallet wallet = Wallets.newFileSystemWallet(Paths.get(org.name().toLowerCase() + "Wallet"));
+
+        if (wallet.get("admin") != null) {
+            System.out.println("An identity for the admin user \"admin\" already exists in the wallet");
+            return;
+        }
+
+        final EnrollmentRequest enrollmentRequestTLS = new EnrollmentRequest();
+        enrollmentRequestTLS.addHost("localhost");
+        enrollmentRequestTLS.setProfile("tls");
+        Enrollment enrollment = caClient.enroll("admin", "adminpw", enrollmentRequestTLS);
+        Identity user = Identities.newX509Identity(mspId, enrollment);
+        wallet.put("admin", user);
+        System.out.println("Successfully enrolled user \"admin\" and imported it into the wallet");
+    }
+
+    private void registerUser(String userName, Organizations org) throws Exception {
+        Properties props = new Properties();
+        HFCAClient caClient = null;
+        String mspId = "";
+        String affiliation = org.name().toLowerCase() + ".department1";
+        props.put("pemFile", "test-network/organizations/peerOrganizations/" + org.name().toLowerCase() + ".example.com/ca/ca." + org.name().toLowerCase() + ".example.com-cert.pem");
+        props.put("allowAllHostNames", "true");
+
+        if (org.equals(Organizations.ORG1)) {
+            caClient = HFCAClient.createNewInstance("https://localhost:7054", props);
+            mspId = "Org1MSP";
+        } else if (org.equals(Organizations.ORG2)) {
+            caClient = HFCAClient.createNewInstance("https://localhost:8054", props);
+            mspId = "Org2MSP";
+        }
+        CryptoSuite cryptoSuite = CryptoSuiteFactory.getDefault().getCryptoSuite();
+        caClient.setCryptoSuite(cryptoSuite);
+
+        Wallet wallet = Wallets.newFileSystemWallet(Paths.get(org.name().toLowerCase() + "Wallet"));
+
+        if (wallet.get("appUser") != null) {
+            System.out.printf("An identity for the user \"%s\" already exists in the wallet", userName);
+            return;
+        }
+        X509Identity adminIdentity = (X509Identity) wallet.get("admin");
+        if (adminIdentity == null) {
+            System.out.println("You need to create wallet first");
+            return;
+        }
+
+        User admin = new UserImpl("admin", affiliation, adminIdentity, mspId);
+
+        RegistrationRequest registrationRequest = new RegistrationRequest(userName);
+        registrationRequest.setAffiliation(affiliation);
+        registrationRequest.setEnrollmentID(userName);
+        String enrollmentSecret = caClient.register(registrationRequest, admin);
+        Enrollment enrollment = caClient.enroll(userName, enrollmentSecret);
+        Identity user = Identities.newX509Identity(mspId, enrollment);
+        wallet.put(userName, user);
+
+        System.out.printf("Successfully enrolled user \"%s\" and imported it into the wallet%n", userName);
     }
 }
