@@ -68,6 +68,8 @@ public final class GradeControllerTest {
                     "{ \"gradeId\": \"Filip Piwowarczyk3\", \"grade\": 4.5, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}"));
             gradesList.add(new MockKeyValue("grade1",
                     "{ \"gradeId\": \"Filip Piwowarczyk4\", \"grade\": 4.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}"));
+            gradesList.add(new MockKeyValue("grade1",
+                    "{ \"gradeId\": \"Ola Piwowarczyk0\", \"grade\": 4.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Ola Piwowarczyk\"}"));
         }
 
         @Override
@@ -218,7 +220,27 @@ public final class GradeControllerTest {
                     + "{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\"},"
                     + "{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"History\",\"teacher\":\"Adam Mickiewicz\"},"
                     + "{\"grade\":4.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
-                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}]");
+                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
+                    + "{\"grade\":4.0,\"gradeId\":\"Ola Piwowarczyk0\",\"student\":\"Ola Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}]");
+        }
+
+
+        @Test
+        void invokeGetGradesForStudent() {
+            GradeController contract = new GradeController();
+            Context ctx = mock(Context.class);
+            ChaincodeStub stub = mock(ChaincodeStub.class);
+            when(ctx.getStub()).thenReturn(stub);
+            when(stub.getStateByRange("Filip Piwowarczyk0", "Filip Piwowarczyk999999")).thenReturn(new MockGradeResultsIterator());
+
+            String grades = contract.getGradesForStudent(ctx, "Filip Piwowarczyk");
+
+            assertThat(grades).isEqualTo("[{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
+                    + "{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\"},"
+                    + "{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"History\",\"teacher\":\"Adam Mickiewicz\"},"
+                    + "{\"grade\":4.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
+                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
+                    + "{\"grade\":4.0,\"gradeId\":\"Ola Piwowarczyk0\",\"student\":\"Ola Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}]");
         }
     }
 

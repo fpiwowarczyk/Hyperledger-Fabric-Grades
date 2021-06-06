@@ -138,6 +138,30 @@ public class GradeController implements ContractInterface {
 
     /**
      * @param ctx
+     * @param studentName
+     * @return
+     */
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    public String getGradesForStudent(final Context ctx, final String studentName) {
+        ChaincodeStub stub = ctx.getStub();
+
+        List<Grade> queryResults = new ArrayList<Grade>();
+
+        QueryResultsIterator<KeyValue> results = stub.getStateByRange(studentName + "0", studentName + "999999");
+
+        for (KeyValue result : results) {
+            Grade grade = genson.deserialize(result.getStringValue(), Grade.class);
+            queryResults.add(grade);
+            System.out.println(grade.toString());
+        }
+
+        final String response = genson.serialize(queryResults);
+
+        return response;
+    }
+
+    /**
+     * @param ctx
      * @param gradeId
      * @param gradeValue
      * @param subject
