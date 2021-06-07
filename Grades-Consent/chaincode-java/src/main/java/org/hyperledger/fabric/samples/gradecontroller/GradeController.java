@@ -47,6 +47,7 @@ public class GradeController implements ContractInterface {
     public void initGrades(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
 
+
         addGradeWithId(ctx, "Filip Piwowarczyk0", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
         addGradeWithId(ctx, "Filip Piwowarczyk1", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
         addGradeWithId(ctx, "Filip Piwowarczyk2", GradeValue.FOUR.value, "IT", "Adam Mickiewicz", "Filip Piwowarczyk");
@@ -243,8 +244,22 @@ public class GradeController implements ContractInterface {
         }
 
         final String response = genson.serialize(queryResults);
-
         return response;
+    }
+
+    /**
+     *
+     * @param ctx
+     * @return
+     */
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    public String getQueryAuthor(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+
+        String author = new String(stub.getCreator());
+
+        return author;
+
     }
 
     private String getGradeId(final Context ctx, final String student) {

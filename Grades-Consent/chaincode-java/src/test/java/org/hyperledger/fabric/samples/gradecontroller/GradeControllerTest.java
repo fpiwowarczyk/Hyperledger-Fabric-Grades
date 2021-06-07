@@ -213,7 +213,6 @@ public final class GradeControllerTest {
             ChaincodeStub stub = mock(ChaincodeStub.class);
             when(ctx.getStub()).thenReturn(stub);
             when(stub.getStateByRange("", "")).thenReturn(new MockGradeResultsIterator());
-
             String grades = contract.getAllGrades(ctx);
 
             assertThat(grades).isEqualTo("[{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"

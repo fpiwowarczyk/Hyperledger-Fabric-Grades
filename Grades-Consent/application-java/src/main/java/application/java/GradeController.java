@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 @RestController
 public class GradeController {
@@ -37,6 +38,7 @@ public class GradeController {
     private Wallet wallet;
     private Path networkConfigPath;
     Gateway.Builder builder;
+    private String currentUser;
 
 
     GradeController() throws IOException {
@@ -55,6 +57,7 @@ public class GradeController {
         } catch (Exception e) {
             LOGGER.error("No such user as " + userName);
         }
+        currentUser = userName;
         String returnMsg = "Successfully logged user " + userName;
         System.out.println(returnMsg);
         return returnMsg;
@@ -169,6 +172,13 @@ public class GradeController {
         return objectMapper.readValue(result, Grade.class);
     }
 
+    @GetMapping("/author")
+    public String getAuthor() throws ContractException {
+        String author = new String(contract.evaluateTransaction("getQueryAuthor"));
+
+        return author;
+    }
+
     private void enrollAdmin(@NotNull Organizations org) throws Exception {
         Properties props = new Properties();
         HFCAClient caClient = null;
@@ -222,7 +232,7 @@ public class GradeController {
 
         Wallet wallet = Wallets.newFileSystemWallet(Paths.get(org.name().toLowerCase() + "Wallet"));
 
-        if (wallet.get("appUser") != null) {
+        if (wallet.get(userName) != null) {
             System.out.printf("An identity for the user \"%s\" already exists in the wallet", userName);
             return;
         }
@@ -232,7 +242,7 @@ public class GradeController {
             return;
         }
 
-        User admin = new UserImpl("admin", affiliation, adminIdentity, mspId);
+        User admin = new UserImpl("admin", Set.of("Admin"), affiliation, adminIdentity, mspId);
 
         RegistrationRequest registrationRequest = new RegistrationRequest(userName);
         registrationRequest.setAffiliation(affiliation);

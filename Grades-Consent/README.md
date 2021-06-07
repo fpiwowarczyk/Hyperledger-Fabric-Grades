@@ -1,5 +1,4 @@
-# Simple network
-
+# Simple networkt
 Repository for system for managing students grades based on blockchain private
 network on Hyperledger Fabric.
 
@@ -8,6 +7,14 @@ it is used to compare with another network with consent mechanism.
 
 Look into parallel to this project folder in repo to see network with 
 consent mechanism 
+
+## Mechnism of consent
+API 
+Api sends query for some data
+{
+    
+}
+
 
 ## How to run
 It is based on test-network from hyperledger https://hyperledger-fabric.readthedocs.io/en/release-2.2/test_network.html.

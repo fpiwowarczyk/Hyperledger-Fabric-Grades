@@ -17,8 +17,9 @@ public class UserImpl implements User {
     private String mspId;
     X509Identity adminIdentity;
 
-    public UserImpl(String name, String affiliation, X509Identity adminIdentity, String mspId) {
+    public UserImpl(String name, Set<String> roles, String affiliation, X509Identity adminIdentity, String mspId) {
         this.name = name;
+        this.roles = roles;
         this.affiliation = affiliation;
         this.adminIdentity = adminIdentity;
         this.mspId = mspId;
