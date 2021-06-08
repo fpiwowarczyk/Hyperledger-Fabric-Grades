@@ -1,5 +1,7 @@
 package application.java;
 
+import application.java.ConsentIdentity.ConsentIdentity;
+import application.java.ConsentIdentity.ConsentIdentityImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -21,6 +23,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+
+import static org.hyperledger.fabric.gateway.Identities.readX509Certificate;
 
 @RestController
 public class GradeController {
