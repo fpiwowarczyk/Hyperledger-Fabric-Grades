@@ -1,5 +1,6 @@
 package org.hyperledger.fabric.samples.gradecontroller;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.hyperledger.fabric.contract.Context;
 import com.owlike.genson.Genson;
@@ -17,6 +18,8 @@ import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.HashSet;
 
 
 @Contract(
@@ -43,25 +46,15 @@ public class GradeController implements ContractInterface {
 
     /**
      * @param ctx
-     * @param author
-     * @param roles
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void initGrades(final Context ctx,
-                           final String author,
-                           final Set<String> roles) {
+    public void initGrades(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
 
-        if (!CollectionUtils.containsAny(roles, Set.of("Admin"))) {
-            String errorMessage = String.format("Insufficient privileges of %s", author);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
-        }
-
-        addGradeWithId(ctx, "admin", Set.of("Admin"), "Filip Piwowarczyk0", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGradeWithId(ctx, "admin", Set.of("Admin"), "Filip Piwowarczyk1", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGradeWithId(ctx, "admin", Set.of("Admin"), "Filip Piwowarczyk2", GradeValue.FOUR.value, "IT", "Adam Mickiewicz", "Filip Piwowarczyk");
-        addGradeWithId(ctx, "admin", Set.of("Admin"), "Filip Piwowarczyk3", GradeValue.THREEPLUS.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "admin", "Admin", "Filip Piwowarczyk0", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "admin", "Admin", "Filip Piwowarczyk1", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "admin", "Admin", "Filip Piwowarczyk2", GradeValue.FOUR.value, "IT", "Adam Mickiewicz", "Filip Piwowarczyk");
+        addGradeWithId(ctx, "admin", "Admin", "Filip Piwowarczyk3", GradeValue.THREEPLUS.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
 
     }
 
@@ -69,7 +62,7 @@ public class GradeController implements ContractInterface {
     /**
      * @param ctx
      * @param author
-     * @param roles
+     * @param serializedRoles
      * @param gradeValue
      * @param subject
      * @param teacher
@@ -79,13 +72,13 @@ public class GradeController implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade addGrade(final Context ctx,
                           final String author,
-                          final Set<String> roles,
+                          final String serializedRoles,
                           final Double gradeValue,
                           final String subject,
                           final String teacher,
                           final String student) {
         ChaincodeStub stub = ctx.getStub();
-
+        Set<String> roles = deserializeRoles(serializedRoles);
         if (!checkGradeValue(gradeValue)) {
             String errorMessage = String.format("Bad grade value %s", gradeValue);
             System.out.println(errorMessage);
@@ -111,7 +104,7 @@ public class GradeController implements ContractInterface {
     /**
      * @param ctx
      * @param author
-     * @param roles
+     * @param serializedRoles
      * @param gradeId
      * @param gradeValue
      * @param subject
@@ -122,21 +115,21 @@ public class GradeController implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade addGradeWithId(final Context ctx,
                                 final String author,
-                                final Set<String> roles,
+                                final String serializedRoles,
                                 final String gradeId,
                                 final Double gradeValue,
                                 final String subject,
                                 final String teacher,
                                 final String student) {
         ChaincodeStub stub = ctx.getStub();
-
+        Set<String> roles = deserializeRoles(serializedRoles);
         if (!checkGradeValue(gradeValue)) {
             String errorMessage = String.format("Bad grade value %s", gradeValue);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.WRONG_GRADE_VALUE.toString());
         }
 
-        if (gradeExists(ctx, "admin", Set.of("Admin"), gradeId)) {
+        if (gradeExists(ctx, gradeId)) {
             String errorMessage = String.format("Grade with id %s already exists", gradeId);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_ALREADY_EXISTS.toString());
@@ -157,16 +150,17 @@ public class GradeController implements ContractInterface {
     /**
      * @param ctx
      * @param author
-     * @param roles
+     * @param serializedRoles
      * @param gradeId
      * @return
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Grade ReadGrade(final Context ctx,
                            final String author,
-                           final Set<String> roles,
+                           final String serializedRoles,
                            final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
+        Set<String> roles = deserializeRoles(serializedRoles);
         String assetJSON = stub.getStringState(gradeId);
 
         if (assetJSON == null || assetJSON.isEmpty()) {
@@ -190,17 +184,17 @@ public class GradeController implements ContractInterface {
     /**
      * @param ctx
      * @param author
-     * @param roles
+     * @param serializedRoles
      * @param studentName
      * @return
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public String getGradesForStudent(final Context ctx,
                                       final String author,
-                                      final Set<String> roles,
+                                      final String serializedRoles,
                                       final String studentName) {
         ChaincodeStub stub = ctx.getStub();
-
+        Set<String> roles = deserializeRoles(serializedRoles);
         List<Grade> queryResults = new ArrayList<Grade>();
 
         QueryResultsIterator<KeyValue> results = stub.getStateByRange(studentName + "0", studentName + "999999");
@@ -223,7 +217,7 @@ public class GradeController implements ContractInterface {
     /**
      * @param ctx
      * @param author
-     * @param roles
+     * @param serializedRoles
      * @param gradeId
      * @param gradeValue
      * @param subject
@@ -234,15 +228,15 @@ public class GradeController implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade UpdateGrade(final Context ctx,
                              final String author,
-                             final Set<String> roles,
+                             final String serializedRoles,
                              final String gradeId,
                              final Double gradeValue,
                              final String subject,
                              final String teacher,
                              final String student) {
         ChaincodeStub stub = ctx.getStub();
-
-        if (!gradeExists(ctx, "admin", Set.of("Admin"), gradeId)) {
+        Set<String> roles = deserializeRoles(serializedRoles);
+        if (!gradeExists(ctx, gradeId)) {
             String errorMessage = String.format("Grade %s does not exist", gradeId);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_NOT_FOUND.toString());
@@ -270,17 +264,17 @@ public class GradeController implements ContractInterface {
     /**
      * @param ctx
      * @param author
-     * @param roles
+     * @param serializedRoles
      * @param gradeId
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void DeleteGrade(final Context ctx,
                             final String author,
-                            final Set<String> roles,
+                            final String serializedRoles,
                             final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
-
-        if (!gradeExists(ctx, "admin", Set.of("Admin"), gradeId)) {
+        Set<String> roles = deserializeRoles(serializedRoles);
+        if (!gradeExists(ctx, gradeId)) {
             String errorMessage = String.format("Grade %s does not exist", gradeId);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_NOT_FOUND.toString());
@@ -303,8 +297,6 @@ public class GradeController implements ContractInterface {
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public boolean gradeExists(final Context ctx,
-                               final String author,
-                               final Set<String> roles,
                                final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
         String assetJSON = stub.getStringState(gradeId);
@@ -321,12 +313,12 @@ public class GradeController implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public String getAllGrades(final Context ctx,
                                final String author,
-                               final Set<String> roles) {
+                               final String roles) {
         ChaincodeStub stub = ctx.getStub();
 
         List<Grade> queryResults = new ArrayList<Grade>();
 
-        if (!CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
+        if (!CollectionUtils.containsAny(Set.of(roles), Set.of("Admin", "Professor"))) {
             String errorMessage = String.format("Insufficient privileges of %s", author);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
@@ -349,7 +341,7 @@ public class GradeController implements ContractInterface {
     private String getGradeId(final Context ctx, final String student) {
         int i = 0;
         String output = student + i;
-        while (gradeExists(ctx, "admin", Set.of("Admin"), output)) {
+        while (gradeExists(ctx, output)) {
             i++;
             output = student + i;
         }
@@ -364,5 +356,15 @@ public class GradeController implements ContractInterface {
                 || value.equals(4.0)
                 || value.equals(4.5)
                 || value.equals(5.0);
+    }
+
+    /**
+     *
+     * @param serializedRoles
+     * @return
+     */
+    @VisibleForTesting
+    Set<String> deserializeRoles(final String serializedRoles) {
+        return new HashSet<String>(Arrays.asList(serializedRoles.split(";")));
     }
 }
