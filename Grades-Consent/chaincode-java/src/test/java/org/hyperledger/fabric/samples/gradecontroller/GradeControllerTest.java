@@ -12,6 +12,7 @@ import org.mockito.InOrder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.ThrowableAssert.catchThrowable;
@@ -108,7 +109,7 @@ public final class GradeControllerTest {
             when(stub.getStringState("Filip Piwowarczyk0"))
                     .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
 
-            Grade grade = contract.ReadGrade(ctx, "Filip Piwowarczyk0");
+            Grade grade = contract.ReadGrade(ctx, "Filip Piwowarczy", Set.of("Student"), "Filip Piwowarczyk0");
 
             assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk0", 2.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk"));
         }
@@ -122,7 +123,7 @@ public final class GradeControllerTest {
             when(stub.getStringState("Filip Piwowarczyk0")).thenReturn("");
 
             Throwable thrown = catchThrowable(() -> {
-                contract.ReadGrade(ctx, "Filip Piwowarczyk0");
+                contract.ReadGrade(ctx, "Filip Piwowarczyk", Set.of("Student"), "Filip Piwowarczyk0");
             });
 
             assertThat(thrown).isInstanceOf(ChaincodeException.class).hasNoCause()
@@ -139,7 +140,7 @@ public final class GradeControllerTest {
         ChaincodeStub stub = mock(ChaincodeStub.class);
         when(ctx.getStub()).thenReturn(stub);
 
-        contract.initGrades(ctx);
+        contract.initGrades(ctx, "admin", Set.of("Admin"));
 
         InOrder inOrder = inOrder(stub);
         inOrder.verify(stub).putStringState("Filip Piwowarczyk0", "{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}");
@@ -161,7 +162,7 @@ public final class GradeControllerTest {
         when(stub.getStringState("Filip Piwowarczyk2"))
                 .thenReturn("cos");
 
-        Grade grade = controller.addGrade(ctx, 3.0, "Math", "John Doe", "Filip Piwowarczyk");
+        Grade grade = controller.addGrade(ctx, "John Doe", Set.of("Professor"), 3.0, "Math", "John Doe", "Filip Piwowarczyk");
 
         assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk3", 3.0, "Math", "John Doe", "Filip Piwowarczyk"));
 
@@ -180,12 +181,30 @@ public final class GradeControllerTest {
                     .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"stuednt\": \"Filip Piwowarczyk\"}");
 
             Throwable thrown = catchThrowable(() -> {
-                contract.addGradeWithId(ctx, "Filip Piwowarczyk0", 2.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+                contract.addGradeWithId(ctx, "Adam Mickiewicz", Set.of("Professor"), "Filip Piwowarczyk0", 2.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
             });
 
             assertThat(thrown).isInstanceOf(ChaincodeException.class).hasNoCause()
                     .hasMessage("Grade with id Filip Piwowarczyk0 already exists");
             assertThat(((ChaincodeException) thrown).getPayload()).isEqualTo("GRADE_ALREADY_EXISTS".getBytes());
+        }
+
+        @Test
+        public void whenWrongRole() {
+            GradeController contract = new GradeController();
+            Context ctx = mock(Context.class);
+            ChaincodeStub stub = mock(ChaincodeStub.class);
+            when(ctx.getStub()).thenReturn(stub);
+            when(stub.getStringState("Filip Piwowarczyk0"))
+                    .thenReturn("");
+
+            Throwable thrown = catchThrowable(() -> {
+                contract.addGradeWithId(ctx, "Filip Piwowarczyk", Set.of("Student"), "Filip Piwowarczyk0", 2.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+            });
+
+            assertThat(thrown).isIn(ChaincodeException.class).hasNoCause()
+                    .hasMessage("Insufficient privileges of Filip Piwowarczyk");
+            assertThat(((ChaincodeException) thrown).getPayload()).isEqualTo("INSUFFICIENT_PERMISSIONS".getBytes());
         }
 
         @Test
@@ -198,7 +217,7 @@ public final class GradeControllerTest {
                     .thenReturn("");
 
             Throwable thrown = catchThrowable(() -> {
-                contract.addGrade(ctx, 3.2, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+                contract.addGrade(ctx, "Adam Mickiewicz", Set.of("Professor"), 3.2, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
             });
 
             assertThat(thrown).isInstanceOf(ChaincodeException.class).hasNoCause()
@@ -213,7 +232,7 @@ public final class GradeControllerTest {
             ChaincodeStub stub = mock(ChaincodeStub.class);
             when(ctx.getStub()).thenReturn(stub);
             when(stub.getStateByRange("", "")).thenReturn(new MockGradeResultsIterator());
-            String grades = contract.getAllGrades(ctx);
+            String grades = contract.getAllGrades(ctx, "admin", Set.of("Admin"));
 
             assertThat(grades).isEqualTo("[{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
                     + "{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\"},"
@@ -232,14 +251,13 @@ public final class GradeControllerTest {
             when(ctx.getStub()).thenReturn(stub);
             when(stub.getStateByRange("Filip Piwowarczyk0", "Filip Piwowarczyk999999")).thenReturn(new MockGradeResultsIterator());
 
-            String grades = contract.getGradesForStudent(ctx, "Filip Piwowarczyk");
+            String grades = contract.getGradesForStudent(ctx, "Filip Piwowarczyk", Set.of("Student"), "Filip Piwowarczyk");
 
             assertThat(grades).isEqualTo("[{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
                     + "{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\"},"
                     + "{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"History\",\"teacher\":\"Adam Mickiewicz\"},"
                     + "{\"grade\":4.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
-                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"},"
-                    + "{\"grade\":4.0,\"gradeId\":\"Ola Piwowarczyk0\",\"student\":\"Ola Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}]");
+                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}]");
         }
     }
 
@@ -255,7 +273,7 @@ public final class GradeControllerTest {
             when(stub.getStringState("Filip Piwowarczyk0"))
                     .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
 
-            Grade grade = contract.UpdateGrade(ctx, "Filip Piwowarczyk0", 4.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
+            Grade grade = contract.UpdateGrade(ctx, "Adam Mickiewicz", Set.of("Professor"), "Filip Piwowarczyk0", 4.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
 
             assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk0", 4.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk"));
         }
@@ -269,7 +287,7 @@ public final class GradeControllerTest {
             when(stub.getStringState("Filip Piwowarczyk0")).thenReturn("");
 
             Throwable thrown = catchThrowable(() -> {
-                contract.UpdateGrade(ctx, "Filip Piwowarczyk0", 3.0, "Math", "Adam Dabrowski", "Filip Piwowarczyk");
+                contract.UpdateGrade(ctx, "Adam Mickiewicz", Set.of("Professor"), "Filip Piwowarczyk0", 3.0, "Math", "Adam Dabrowski", "Filip Piwowarczyk");
             });
 
             assertThat(thrown).isInstanceOf(ChaincodeException.class).hasNoCause()
@@ -287,7 +305,7 @@ public final class GradeControllerTest {
                     .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
 
             Throwable thrown = catchThrowable(() -> {
-                contract.UpdateGrade(ctx, "Filip Piwowarczyk0", 3.2, "Math", "Adam Dabrowski", "Filip Piwowarczyk");
+                contract.UpdateGrade(ctx, "Adam Mickiewicz", Set.of("Professor"), "Filip Piwowarczyk0", 3.2, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
             });
 
             assertThat(thrown).isInstanceOf(ChaincodeException.class).hasNoCause()

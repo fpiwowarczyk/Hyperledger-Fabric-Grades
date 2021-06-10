@@ -1,7 +1,5 @@
 package application.java;
 
-import application.java.ConsentIdentity.ConsentIdentity;
-import application.java.ConsentIdentity.ConsentIdentityImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -17,12 +15,17 @@ import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hyperledger.fabric.gateway.Identities.readX509Certificate;
 
@@ -43,6 +46,7 @@ public class GradeController {
     private Path networkConfigPath;
     Gateway.Builder builder;
     private String currentUser;
+    private Organizations currentOrganization;
 
 
     GradeController() throws IOException {
@@ -62,12 +66,13 @@ public class GradeController {
             LOGGER.error("No such user as " + userName);
         }
         currentUser = userName;
+        currentOrganization = org;
         String returnMsg = "Successfully logged user " + userName;
         System.out.println(returnMsg);
         return returnMsg;
     }
 
-    @GetMapping("/addWallet")
+    @PostMapping("/addWallet")
     public String addWallet(@RequestParam Organizations org) throws Exception {
         enrollAdmin(org);
         String returnMsg = "Walled added";
@@ -76,8 +81,8 @@ public class GradeController {
     }
 
     @PostMapping("/addUser")
-    public String addUser(@RequestParam String userName, @RequestParam Organizations org) throws Exception {
-        registerUser(userName, org);
+    public String addUser(@RequestParam String userName, @RequestParam Organizations org, @RequestParam Set<String> roles) throws Exception {
+        registerUser(userName, org, roles);
         String returnMsg = "User added: " + userName;
         System.out.println(returnMsg);
         return returnMsg;
@@ -132,6 +137,12 @@ public class GradeController {
                           @RequestParam String subject,
                           @RequestParam String teacher,
                           @RequestParam String student) throws IOException {
+        String author = currentUser;
+        Set<String> listOfRoles;
+        try(Stream<String> lines = Files.lines(Paths.get(currentOrganization.name().toLowerCase() + "Wallet/" + currentUser + ".txt"))){
+            listOfRoles = lines.collect(Collectors.toSet());
+        }
+        System.out.println(author+": "+listOfRoles);
         try (Gateway gateway = builder.connect()) {
             network = gateway.getNetwork("mychannel");
             contract = network.getContract("grades");
@@ -176,13 +187,6 @@ public class GradeController {
         return objectMapper.readValue(result, Grade.class);
     }
 
-    @GetMapping("/author")
-    public String getAuthor() throws ContractException {
-        String author = new String(contract.evaluateTransaction("getQueryAuthor"));
-
-        return author;
-    }
-
     private void enrollAdmin(@NotNull Organizations org) throws Exception {
         Properties props = new Properties();
         HFCAClient caClient = null;
@@ -216,7 +220,7 @@ public class GradeController {
         System.out.println("Successfully enrolled user \"admin\" and imported it into the wallet");
     }
 
-    private void registerUser(String userName, Organizations org) throws Exception {
+    private void registerUser(String userName, Organizations org, Set<String> roles) throws Exception {
         Properties props = new Properties();
         HFCAClient caClient = null;
         String mspId = "";
@@ -246,8 +250,11 @@ public class GradeController {
             return;
         }
 
-        User admin = new UserImpl("admin", Set.of("Admin"), affiliation, adminIdentity, mspId);
 
+        File rolesFile = createFileForRoles(userName, org);
+        writeRolesToFile(rolesFile, roles);
+
+        User admin = new UserImpl("admin", Set.of("Admin"), affiliation, adminIdentity, mspId);
         RegistrationRequest registrationRequest = new RegistrationRequest(userName);
         registrationRequest.setAffiliation(affiliation);
         registrationRequest.setEnrollmentID(userName);
@@ -257,5 +264,33 @@ public class GradeController {
         wallet.put(userName, user);
 
         System.out.printf("Successfully enrolled user \"%s\" and imported it into the wallet%n", userName);
+    }
+
+    private File createFileForRoles(String userName, Organizations org) throws IOException {
+        File rolesFile = new File("error.txt");
+        try {
+            rolesFile = new File(org.name().toLowerCase() + "Wallet/" + userName + ".txt");
+            if (rolesFile.createNewFile()) {
+                System.out.println("File created: " + userName + ".txt");
+            } else {
+                System.out.println("File already exists");
+            }
+            return rolesFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return rolesFile;
+    }
+
+    private void writeRolesToFile(File rolesFile, Set<String> roles) throws IOException {
+        try {
+            FileWriter writer = new FileWriter(rolesFile.getPath());
+            for(String role: roles){
+                writer.write(role+"\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
