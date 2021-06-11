@@ -437,4 +437,26 @@ public final class GradeControllerTest {
 
     }
 
+    @Nested
+    class DeleteGradeTransaction {
+
+        @Test
+        public void whenGradeDoesNotExist() {
+            GradeController contract = new GradeController();
+            Context ctx = mock(Context.class);
+            ChaincodeStub stub = mock(ChaincodeStub.class);
+            when(ctx.getStub()).thenReturn(stub);
+            when(stub.getStringState("Filip Piwowarczyk0")).thenReturn("");
+
+            Throwable thrown = catchThrowable(() -> {
+                contract.DeleteGrade(ctx, "Filip Piwowarczyk", "Professor", "Filip Piwowarczyk0");
+            });
+
+            assertThat(thrown).isInstanceOf(ChaincodeException.class).hasNoCause()
+                    .hasMessage("Grade Filip Piwowarczyk0 does not exist");
+            assertThat(((ChaincodeException) thrown).getPayload()).isEqualTo("GRADE_NOT_FOUND".getBytes());
+        }
+
+    }
+
 }

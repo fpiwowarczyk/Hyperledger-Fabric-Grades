@@ -58,7 +58,6 @@ public class GradeController implements ContractInterface {
 
     }
 
-
     /**
      * @param ctx
      * @param author
@@ -359,7 +358,6 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     *
      * @param serializedRoles
      * @return
      */

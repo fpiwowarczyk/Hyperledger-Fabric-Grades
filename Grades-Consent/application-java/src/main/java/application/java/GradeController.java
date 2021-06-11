@@ -17,15 +17,11 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 
 @RestController
 public class GradeController {
@@ -35,53 +31,36 @@ public class GradeController {
     }
 
     private static final Logger LOGGER = LogManager.getLogger(GradeController.class);
-    private Network network;
     private Contract contract;
     private byte[] result;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     Gateway.Builder builder;
     private String currentUser;
     private Organizations currentOrganization;
 
-
-    GradeController() throws IOException {
-        objectMapper = new ObjectMapper();
-    }
-
-
-
     @GetMapping("/grades")
     public List<Grade> getAllGrades() throws IOException {
-        LOGGER.info("Getting all classes");
-        String author = currentUser;
-        List<String> setOfRoles;
-        try (Stream<String> lines = Files.lines(Paths.get(currentOrganization.name().toLowerCase() + "Wallet/" + currentUser + ".txt"))) {
-            setOfRoles = lines.collect(Collectors.toList());
-        }
+        LOGGER.info("Getting all grades");
+        String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
-            network = gateway.getNetwork("mychannel");
-            contract = network.getContract("grades");
-            result = contract.evaluateTransaction("getAllGrades", author, setOfRoles.get(0));
+            connectToChain(gateway);
+            result = contract.evaluateTransaction("getAllGrades", currentUser, roles);
         } catch (Exception e) {
-            LOGGER.error(e);
+            LOGGER.error(e.getMessage(),e);
         }
-        // Map Json to Grades object
-//        return new String(result);
         return objectMapper.readValue(result, new TypeReference<List<Grade>>() {
         });
     }
 
     @GetMapping("/grades/{gradeId}")
     public Grade getGrade(@PathVariable String gradeId) throws IOException {
-        String author = currentUser;
-        String roles = FileHandler.readRolesFromFile(currentUser,currentOrganization);
+        String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
             LOGGER.info("Get grade with id: " + gradeId);
-            network = gateway.getNetwork("mychannel");
-            contract = network.getContract("grades");
-            result = contract.evaluateTransaction("ReadGrade", author, roles, gradeId);
+            connectToChain(gateway);
+            result = contract.evaluateTransaction("ReadGrade", currentUser, roles, gradeId);
         } catch (Exception e) {
-            System.err.println(e);
+            LOGGER.error(e.getMessage(),e);
         }
         return objectMapper.readValue(result, Grade.class);
     }
@@ -89,14 +68,12 @@ public class GradeController {
     @GetMapping("/student")
     public List<Grade> getGradesForStudent(@RequestParam String studentName) throws IOException {
         LOGGER.info("Getting grades for " + studentName);
-        String author = currentUser;
-        String roles = FileHandler.readRolesFromFile(currentUser,currentOrganization);
+        String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
-            network = gateway.getNetwork("mychannel");
-            contract = network.getContract("grades");
-            result = contract.evaluateTransaction("getGradesForStudent", author, roles, studentName);
+            connectToChain(gateway);
+            result = contract.evaluateTransaction("getGradesForStudent", currentUser, roles, studentName);
         } catch (Exception e) {
-            LOGGER.error(e);
+            LOGGER.error(e.getMessage(),e);
         }
         // Map Json to Grades object
         return objectMapper.readValue(result, new TypeReference<List<Grade>>() {
@@ -108,14 +85,12 @@ public class GradeController {
                           @RequestParam String subject,
                           @RequestParam String teacher,
                           @RequestParam String student) throws IOException {
-        String author = currentUser;
-        String roles = FileHandler.readRolesFromFile(currentUser,currentOrganization);
+        String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
-            network = gateway.getNetwork("mychannel");
-            contract = network.getContract("grades");
-            result = contract.submitTransaction("addGrade", author, roles, gradeValue.toString(), subject, teacher, student);
+            connectToChain(gateway);
+            result = contract.submitTransaction("addGrade", currentUser, roles, gradeValue.toString(), subject, teacher, student);
         } catch (Exception e) {
-            System.err.println(e);
+            LOGGER.error(e.getMessage(),e);
         }
 
         return objectMapper.readValue(result, Grade.class);
@@ -128,15 +103,13 @@ public class GradeController {
                              @RequestParam String teacher,
                              @RequestParam String student) throws IOException {
 
-        String author = currentUser;
-        String roles = FileHandler.readRolesFromFile(currentUser,currentOrganization);
+        String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
             LOGGER.info("Update grade with: " + gradeId);
-            network = gateway.getNetwork("mychannel");
-            contract = network.getContract("grades");
-            result = contract.submitTransaction("UpdateGrade", author, roles, gradeId, gradeValue.toString(), subject, teacher, student);
+            connectToChain(gateway);
+            result = contract.submitTransaction("UpdateGrade", currentUser, roles, gradeId, gradeValue.toString(), subject, teacher, student);
         } catch (Exception e) {
-            System.err.println(e);
+            LOGGER.error(e.getMessage(),e);
         }
 
         return objectMapper.readValue(result, Grade.class);
@@ -145,18 +118,21 @@ public class GradeController {
 
     @DeleteMapping("/grades/{gradeId}")
     public Grade deleteGrade(@PathVariable String gradeId) throws IOException {
-        String author = currentUser;
-        String roles = FileHandler.readRolesFromFile(currentUser,currentOrganization);
+        String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
             LOGGER.info("Delete grade with id: " + gradeId);
-            network = gateway.getNetwork("mychannel");
-            contract = network.getContract("grades");
+            connectToChain(gateway);
             result = contract.evaluateTransaction("ReadGrade", gradeId);
-            contract.submitTransaction("DeleteGrade", author, roles, gradeId);
+            contract.submitTransaction("DeleteGrade", currentUser, roles, gradeId);
         } catch (Exception e) {
-            System.err.println(e);
+            LOGGER.error(e.getMessage(),e);
         }
         return objectMapper.readValue(result, Grade.class);
+    }
+
+    private void connectToChain(Gateway gateway) {
+        Network network = gateway.getNetwork("mychannel");
+        contract = network.getContract("grades");
     }
 
     @RestController
@@ -173,8 +149,7 @@ public class GradeController {
             } catch (Exception e) {
                 LOGGER.error("No such user as " + userName);
             }
-            currentUser = userName;
-            currentOrganization = org;
+            setCurrentUserAndOrganization(userName, org);
             String returnMsg = "Successfully logged user " + userName;
             System.out.println(returnMsg);
             return returnMsg;
@@ -211,12 +186,12 @@ public class GradeController {
                 caClient = HFCAClient.createNewInstance("https://localhost:8054", props);
                 mspId = "Org2MSP";
             }
-            CryptoSuite cryptoSuite = CryptoSuiteFactory.getDefault().getCryptoSuite();
+            CryptoSuite cryptoSuite = createCryptoSuite(caClient);
             caClient.setCryptoSuite(cryptoSuite);
 
             Wallet wallet = Wallets.newFileSystemWallet(Paths.get(org.name().toLowerCase() + "Wallet"));
 
-            if (wallet.get("admin") != null) {
+            if (isAdminPresentInWallet(wallet)) {
                 System.out.println("An identity for the admin user \"admin\" already exists in the wallet");
                 return;
             }
@@ -245,9 +220,9 @@ public class GradeController {
                 caClient = HFCAClient.createNewInstance("https://localhost:8054", props);
                 mspId = "Org2MSP";
             }
-            CryptoSuite cryptoSuite = CryptoSuiteFactory.getDefault().getCryptoSuite();
-            caClient.setCryptoSuite(cryptoSuite);
 
+            CryptoSuite cryptoSuite = createCryptoSuite(caClient);
+            caClient.setCryptoSuite(cryptoSuite);
             Wallet wallet = Wallets.newFileSystemWallet(Paths.get(org.name().toLowerCase() + "Wallet"));
 
             if (wallet.get(userName) != null) {
@@ -260,23 +235,45 @@ public class GradeController {
                 return;
             }
 
-
-            File rolesFile = FileHandler.createFileForRoles(userName, org);
-            FileHandler.writeRolesToFile(rolesFile, roles);
-
-            User admin = new UserImpl("admin", Set.of("Admin"), affiliation, adminIdentity, mspId);
-            RegistrationRequest registrationRequest = new RegistrationRequest(userName);
-            registrationRequest.setAffiliation(affiliation);
-            registrationRequest.setEnrollmentID(userName);
-            String enrollmentSecret = caClient.register(registrationRequest, admin);
-            Enrollment enrollment = caClient.enroll(userName, enrollmentSecret);
-            Identity user = Identities.newX509Identity(mspId, enrollment);
-            wallet.put(userName, user);
-
+            writeRolesFile(userName, org, roles);
+            registerUserInChain(wallet, affiliation, adminIdentity, mspId, userName, caClient);
             System.out.printf("Successfully enrolled user \"%s\" and imported it into the wallet%n", userName);
         }
     }
 
+    private void registerUserInChain(Wallet wallet,
+                                     String affiliation,
+                                     X509Identity adminIdentity,
+                                     String mspId,
+                                     String userName,
+                                     HFCAClient caClient) throws Exception {
+        User admin = new UserImpl("admin", Set.of("Admin"), affiliation, adminIdentity, mspId);
+        RegistrationRequest registrationRequest = new RegistrationRequest(userName);
+        registrationRequest.setAffiliation(affiliation);
+        registrationRequest.setEnrollmentID(userName);
+        String enrollmentSecret = caClient.register(registrationRequest, admin);
+        Enrollment enrollment = caClient.enroll(userName, enrollmentSecret);
+        Identity user = Identities.newX509Identity(mspId, enrollment);
+        wallet.put(userName, user);
+    }
+
+    private void writeRolesFile(String userName, Organizations org, Set<String> roles) throws IOException {
+        File rolesFile = FileHandler.createFileForRoles(userName, org);
+        FileHandler.writeRolesToFile(rolesFile, roles);
+    }
+
+    private CryptoSuite createCryptoSuite(HFCAClient caClient) throws Exception {
+        return CryptoSuiteFactory.getDefault().getCryptoSuite();
+    }
+
+    private boolean isAdminPresentInWallet(Wallet wallet) throws IOException {
+        return wallet.get("admin") != null;
+    }
+
+    private void setCurrentUserAndOrganization(String userName, Organizations org) {
+        currentUser = userName;
+        currentOrganization = org;
+    }
 
 
 }
