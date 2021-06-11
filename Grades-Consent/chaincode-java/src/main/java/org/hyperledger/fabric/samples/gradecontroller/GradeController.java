@@ -27,7 +27,7 @@ import java.util.HashSet;
         info = @Info(
                 title = "Grades controller",
                 description = "The hyperledger grades system",
-                version = "0.0.1",
+                version = "0.0.2",
                 contact = @Contact(
                         email = "filip.piwowarczyk1997@gmail.com",
                         name = "Filip Piwowarczyk"
@@ -49,7 +49,6 @@ public class GradeController implements ContractInterface {
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void initGrades(final Context ctx) {
-        ChaincodeStub stub = ctx.getStub();
 
         addGradeWithId(ctx, "admin", "Admin", "Filip Piwowarczyk0", GradeValue.TWO.value, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
         addGradeWithId(ctx, "admin", "Admin", "Filip Piwowarczyk1", GradeValue.FIVE.value, "WF", "Adam Mickiewicz", "Filip Piwowarczyk");
