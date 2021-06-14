@@ -45,7 +45,7 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
+     * @param ctx Context of app
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void initGrades(final Context ctx) {
@@ -58,14 +58,14 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
-     * @param author
-     * @param serializedRoles
-     * @param gradeValue
-     * @param subject
-     * @param teacher
-     * @param student
-     * @return
+     * @param ctx             App context
+     * @param author          Author of query
+     * @param serializedRoles Roles of that author
+     * @param gradeValue      Value of grade
+     * @param subject         Subject taught by teacher
+     * @param teacher         Teacher
+     * @param student         Student that have new grade
+     * @return Full grade value
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade addGrade(final Context ctx,
@@ -92,7 +92,7 @@ public class GradeController implements ContractInterface {
         String gradeId = getGradeId(ctx, student);
 
 
-        Grade grade = new Grade(gradeId, gradeValue, subject, teacher, student);
+        Grade grade = new Grade(gradeId, gradeValue, List.of(author), subject, teacher, student);
         String gradeJSON = genson.serialize(grade);
         stub.putStringState(gradeId, gradeJSON);
 
@@ -100,25 +100,24 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
-     * @param author
-     * @param serializedRoles
-     * @param gradeId
-     * @param gradeValue
-     * @param subject
-     * @param teacher
-     * @param student
-     * @return
+     * @param ctx             Context of app
+     * @param author          Author of query
+     * @param serializedRoles Serialized roles of author
+     * @param gradeId         Id of grade Name of student + index
+     * @param gradeValue      Value of grade
+     * @param subject         Subject taught by teacher
+     * @param teacher         Teacher
+     * @param student         Student
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public Grade addGradeWithId(final Context ctx,
-                                final String author,
-                                final String serializedRoles,
-                                final String gradeId,
-                                final Double gradeValue,
-                                final String subject,
-                                final String teacher,
-                                final String student) {
+    public void addGradeWithId(final Context ctx,
+                               final String author,
+                               final String serializedRoles,
+                               final String gradeId,
+                               final Double gradeValue,
+                               final String subject,
+                               final String teacher,
+                               final String student) {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
         if (!checkGradeValue(gradeValue)) {
@@ -138,19 +137,17 @@ public class GradeController implements ContractInterface {
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
         }
-        Grade grade = new Grade(gradeId, gradeValue, subject, teacher, student);
+        Grade grade = new Grade(gradeId, gradeValue, List.of(author), subject, teacher, student);
         String gradeJSON = genson.serialize(grade);
         stub.putStringState(gradeId, gradeJSON);
-
-        return grade;
     }
 
     /**
-     * @param ctx
-     * @param author
-     * @param serializedRoles
-     * @param gradeId
-     * @return
+     * @param ctx             Context of app
+     * @param author          Author of query
+     * @param serializedRoles Serialized roles of author
+     * @param gradeId         Id of grade
+     * @return Grade with given gradeId
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Grade ReadGrade(final Context ctx,
@@ -159,16 +156,16 @@ public class GradeController implements ContractInterface {
                            final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
-        String assetJSON = stub.getStringState(gradeId);
+        String gradeJSON = stub.getStringState(gradeId);
 
-        if (assetJSON == null || assetJSON.isEmpty()) {
+        if (gradeJSON == null || gradeJSON.isEmpty()) {
             String errorMessage = String.format("Grade %s does not exist", gradeId);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_NOT_FOUND.toString());
         }
+        Grade grade = genson.deserialize(gradeJSON, Grade.class);
+        UpdateGrade()
 
-
-        Grade grade = genson.deserialize(assetJSON, Grade.class);
 
         if (grade.getStudent().equals(author) || CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
             return grade;
@@ -180,7 +177,7 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
+     * @param ctx             Context of app
      * @param author
      * @param serializedRoles
      * @param studentName
@@ -213,7 +210,7 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
+     * @param ctx             Context of app
      * @param author
      * @param serializedRoles
      * @param gradeId
@@ -260,7 +257,7 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
+     * @param ctx             Context of app
      * @param author
      * @param serializedRoles
      * @param gradeId
@@ -289,7 +286,7 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
+     * @param ctx     Context of app
      * @param gradeId
      * @return
      */
@@ -303,7 +300,7 @@ public class GradeController implements ContractInterface {
     }
 
     /**
-     * @param ctx
+     * @param ctx    Context of app
      * @param author
      * @param roles
      * @return

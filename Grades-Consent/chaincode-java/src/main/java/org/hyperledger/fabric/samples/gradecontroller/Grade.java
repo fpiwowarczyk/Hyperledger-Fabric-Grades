@@ -5,6 +5,7 @@ import com.owlike.genson.annotation.JsonProperty;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 
+import java.util.List;
 import java.util.Objects;
 
 @DataType()
@@ -15,6 +16,9 @@ public final class Grade {
 
     @Property()
     private final Double grade;
+
+    @Property()
+    private final List<String> visitors;
 
     @Property()
     private final String subject;
@@ -33,6 +37,10 @@ public final class Grade {
         return grade;
     }
 
+    public List<String> getVisitors() {
+        return visitors;
+    }
+
     public String getSubject() {
         return subject;
     }
@@ -46,10 +54,11 @@ public final class Grade {
     }
 
     public Grade(@JsonProperty("gradeId") final String gradeId, @JsonProperty("grade") final Double grade,
-                 @JsonProperty("subject") final String subject, @JsonProperty("teacher") final String teacher,
-                 @JsonProperty("student") final String student) {
+                 @JsonProperty("visitors") final List<String> visitors, @JsonProperty("subject") final String subject,
+                 @JsonProperty("teacher") final String teacher, @JsonProperty("student") final String student) {
         this.gradeId = gradeId;
         this.grade = grade;
+        this.visitors = visitors;
         this.subject = subject;
         this.teacher = teacher;
         this.student = student;
@@ -74,14 +83,15 @@ public final class Grade {
                 Objects.deepEquals(
                         new Double[]{getGrade()},
                         new Double[]{that.getGrade()}
-                );
+                )
+                &&
+                visitors.equals(that.visitors);
     }
-
 
 
     @Override
     public int hashCode() {
-        return Objects.hash(getGradeId(), getGrade(), getSubject(), getTeacher(), getStudent());
+        return Objects.hash(getGradeId(), getGrade(), getVisitors(), getSubject(), getTeacher(), getStudent());
     }
 
     @Override
@@ -89,6 +99,7 @@ public final class Grade {
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode())
                 + "[gradeId = " + gradeId
                 + ", grade = " + grade
+                + ", visitors = " + visitors
                 + ", subject = " + subject
                 + ", teacher = " + teacher
                 + ", student = " + student + "]";
