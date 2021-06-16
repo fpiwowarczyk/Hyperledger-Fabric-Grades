@@ -10,11 +10,19 @@ import static org.hyperledger.fabric.samples.gradecontroller.GradeController.gra
 
 public class GradeValidator {
 
-    public static void checkIfGradeExists(final Context ctx, final String gradeId) {
+    public static void checkIfGradeDoesNotExists(final Context ctx, final String gradeId) {
         if (!gradeExists(ctx, gradeId)) {
             String errorMessage = String.format("Grade %s does not exist", gradeId);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeController.GradeControllerErrors.GRADE_NOT_FOUND.toString());
+        }
+    }
+
+    public static void checkIfGradeExists(final Context ctx, final String gradeId) {
+        if (gradeExists(ctx, gradeId)) {
+            String errorMessage = String.format("Grade %s already exist", gradeId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, GradeController.GradeControllerErrors.GRADE_ALREADY_EXISTS.toString());
         }
     }
 

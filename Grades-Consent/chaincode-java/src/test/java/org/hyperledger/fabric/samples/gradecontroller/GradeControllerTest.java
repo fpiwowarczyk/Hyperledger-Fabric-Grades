@@ -144,7 +144,7 @@ public final class GradeControllerTest {
 
             Grade grade = contract.ReadGrade(ctx, "Filip Piwowarczyk", "Student", "Filip Piwowarczyk0");
 
-            assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk0", 2.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk"));
+            assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk0", 2.0, List.of("Adam Mickiewicz"), "Math", "Adam Mickiewicz", "Filip Piwowarczyk"));
         }
 
         @Test
@@ -195,9 +195,9 @@ public final class GradeControllerTest {
 
         InOrder inOrder = inOrder(stub);
         inOrder.verify(stub).putStringState("Filip Piwowarczyk0", "{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}");
-        inOrder.verify(stub).putStringState("Filip Piwowarczyk1", "{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"WF\",\"teacher\":\"Adam Mickiewicz\"}");
-        inOrder.verify(stub).putStringState("Filip Piwowarczyk2", "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"IT\",\"teacher\":\"Adam Mickiewicz\"}");
-        inOrder.verify(stub).putStringState("Filip Piwowarczyk3", "{\"grade\":3.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}");
+        inOrder.verify(stub).putStringState("Filip Piwowarczyk1", "{\"grade\":5.0,\"visitors\":[\"Adam Mickiewicz\"],\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"WF\",\"teacher\":\"Adam Mickiewicz\"}");
+        inOrder.verify(stub).putStringState("Filip Piwowarczyk2", "{\"grade\":4.0,\"visitors\":[\"Adam Mickiewicz\"],\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"IT\",\"teacher\":\"Adam Mickiewicz\"}");
+        inOrder.verify(stub).putStringState("Filip Piwowarczyk3", "{\"grade\":3.5,\"visitors\":[\"Adam Mickiewicz\"],\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}");
     }
 
     @Test
@@ -215,7 +215,7 @@ public final class GradeControllerTest {
 
         Grade grade = controller.addGrade(ctx, "John Doe", "Professor", 3.0, "Math", "John Doe", "Filip Piwowarczyk");
 
-        assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk3", 3.0, "Math", "John Doe", "Filip Piwowarczyk"));
+        assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk3", 3.0, List.of("John Doe"), "Math", "John Doe", "Filip Piwowarczyk"));
 
     }
 
@@ -375,11 +375,11 @@ public final class GradeControllerTest {
             ChaincodeStub stub = mock(ChaincodeStub.class);
             when(ctx.getStub()).thenReturn(stub);
             when(stub.getStringState("Filip Piwowarczyk0"))
-                    .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
+                    .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0,  \"visitors\":[\"Adam Mickiewicz\"], \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
 
             Grade grade = contract.UpdateGrade(ctx, "Adam Mickiewicz", "Professor", "Filip Piwowarczyk0", 4.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk");
 
-            assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk0", 4.0, "Math", "Adam Mickiewicz", "Filip Piwowarczyk"));
+            assertThat(grade).isEqualTo(new Grade("Filip Piwowarczyk0", 4.0, List.of("Adam Mickiewicz","Adam Mickiewicz"), "Math", "Adam Mickiewicz", "Filip Piwowarczyk"));
         }
 
         @Test

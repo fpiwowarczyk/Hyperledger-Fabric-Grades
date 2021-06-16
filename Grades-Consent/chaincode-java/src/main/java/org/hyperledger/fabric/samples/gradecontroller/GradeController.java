@@ -21,11 +21,7 @@ import java.util.Set;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForDeletion;
-import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkIfGradeExists;
-import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkIfGradeValueIsCorrect;
-import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForReading;
-import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForUpdate;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.*;
 
 
 @Contract(
@@ -120,12 +116,7 @@ public class GradeController implements ContractInterface {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
         checkIfGradeValueIsCorrect(gradeValue);
-
-        if (gradeExists(ctx, gradeId)) {
-            String errorMessage = String.format("Grade with id %s already exists", gradeId);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, GradeControllerErrors.GRADE_ALREADY_EXISTS.toString());
-        }
+        checkIfGradeExists(ctx,gradeId);
         if (!CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
             String errorMessage = String.format("Insufficient privileges of %s", author);
             System.out.println(errorMessage);
