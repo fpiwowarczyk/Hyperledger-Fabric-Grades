@@ -21,7 +21,13 @@ import java.util.Set;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.*;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkIfGradeDoesNotExists;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForUpdate;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkIfGradeExists;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkIfGradeValueIsCorrect;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForReading;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForDeletion;
+import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.checkRolesForAdding;
 
 
 @Contract(
@@ -80,12 +86,8 @@ public class GradeController implements ContractInterface {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
         checkIfGradeValueIsCorrect(gradeValue);
+        checkRolesForAdding(roles, author);
 
-        if (!CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
-            String errorMessage = String.format("Insufficient privileges of %s", author);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
-        }
         String gradeId = getGradeId(ctx, student);
         Grade grade = new Grade(gradeId, gradeValue, List.of(author), subject, teacher, student);
         String gradeJSON = genson.serialize(grade);
@@ -116,12 +118,9 @@ public class GradeController implements ContractInterface {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
         checkIfGradeValueIsCorrect(gradeValue);
-        checkIfGradeExists(ctx,gradeId);
-        if (!CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
-            String errorMessage = String.format("Insufficient privileges of %s", author);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
-        }
+        checkIfGradeExists(ctx, gradeId);
+        checkRolesForAdding(roles, author);
+
         Grade grade = new Grade(gradeId, gradeValue, List.of(author), subject, teacher, student);
         String gradeJSON = genson.serialize(grade);
         stub.putStringState(gradeId, gradeJSON);
@@ -141,7 +140,7 @@ public class GradeController implements ContractInterface {
                            final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
-        checkIfGradeExists(ctx, gradeId);
+        checkIfGradeDoesNotExists(ctx, gradeId);
         String gradeJSON = stub.getStringState(gradeId);
         Grade grade = genson.deserialize(gradeJSON, Grade.class);
         UpdateGrade(ctx, author, serializedRoles, gradeId, grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
@@ -175,7 +174,7 @@ public class GradeController implements ContractInterface {
 
         for (KeyValue result : results) {
             Grade grade = genson.deserialize(result.getStringValue(), Grade.class);
-            UpdateGrade(ctx, author, serializedRoles, grade.getGradeId(), grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
+            UpdateGrade(ctx, author, "Admin", grade.getGradeId(), grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
             if (grade.getStudent().equals(author) || CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
                 queryResults.add(grade);
             } else {
@@ -234,8 +233,9 @@ public class GradeController implements ContractInterface {
                              final String student) {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
-        checkIfGradeExists(ctx, gradeId);
+        checkIfGradeDoesNotExists(ctx, gradeId);
         checkIfGradeValueIsCorrect(gradeValue);
+        checkRolesForUpdate(roles, author);
         List<String> visitors = setNewVisitors(gradeId, author, stub);
         Grade newGrade = new Grade(gradeId, gradeValue, visitors, subject, teacher, student);
         String newGradeJSON = genson.serialize(newGrade);
@@ -257,7 +257,7 @@ public class GradeController implements ContractInterface {
                             final String gradeId) {
         ChaincodeStub stub = ctx.getStub();
         Set<String> roles = deserializeRoles(serializedRoles);
-        checkIfGradeExists(ctx, gradeId);
+        checkIfGradeDoesNotExists(ctx, gradeId);
         String gradeJSON = stub.getStringState(gradeId);
         Grade grade = genson.deserialize(gradeJSON, Grade.class);
         UpdateGrade(ctx, author, serializedRoles, gradeId, grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());

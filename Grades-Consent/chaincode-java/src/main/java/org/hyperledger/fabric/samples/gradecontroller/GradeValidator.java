@@ -8,7 +8,10 @@ import java.util.Set;
 
 import static org.hyperledger.fabric.samples.gradecontroller.GradeController.gradeExists;
 
-public class GradeValidator {
+public final class GradeValidator {
+    private GradeValidator() {
+
+    }
 
     public static void checkIfGradeDoesNotExists(final Context ctx, final String gradeId) {
         if (!gradeExists(ctx, gradeId)) {
@@ -51,7 +54,15 @@ public class GradeValidator {
     }
 
     public static void checkRolesForReading(final Set<String> roles, final String author) {
-        if (!CollectionUtils.containsAny(Set.of(roles), Set.of("Admin", "Professor"))) {
+        if (!CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
+            String errorMessage = String.format("Insufficient privileges of %s", author);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, GradeController.GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
+        }
+    }
+
+    public static void checkRolesForAdding(final Set<String> roles, final String author) {
+        if (!CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
             String errorMessage = String.format("Insufficient privileges of %s", author);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, GradeController.GradeControllerErrors.INSUFFICIENT_PERMISSIONS.toString());
