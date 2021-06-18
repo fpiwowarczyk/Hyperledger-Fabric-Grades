@@ -44,6 +44,7 @@ import static org.hyperledger.fabric.samples.gradecontroller.GradeValidator.chec
 public class GradeController implements ContractInterface {
 
     private final Genson genson = new Genson();
+    private List<String> currentVisitors = new ArrayList<>();
 
     public enum GradeControllerErrors {
         GRADE_ALREADY_EXISTS,
@@ -133,7 +134,7 @@ public class GradeController implements ContractInterface {
      * @param gradeId         Id of grade
      * @return Grade with given gradeId
      */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Grade ReadGrade(final Context ctx,
                            final String author,
                            final String serializedRoles,
@@ -143,7 +144,7 @@ public class GradeController implements ContractInterface {
         checkIfGradeDoesNotExists(ctx, gradeId);
         String gradeJSON = stub.getStringState(gradeId);
         Grade grade = genson.deserialize(gradeJSON, Grade.class);
-        UpdateGrade(ctx, author, serializedRoles, gradeId, grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
+        updateGradeVisitors(stub, author, gradeId, grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
 
         if (grade.getStudent().equals(author) || CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
             return grade;
@@ -161,7 +162,7 @@ public class GradeController implements ContractInterface {
      * @param studentName     Student's name
      * @return All grades for student
      */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String getGradesForStudent(final Context ctx,
                                       final String author,
                                       final String serializedRoles,
@@ -174,7 +175,7 @@ public class GradeController implements ContractInterface {
 
         for (KeyValue result : results) {
             Grade grade = genson.deserialize(result.getStringValue(), Grade.class);
-            UpdateGrade(ctx, author, "Admin", grade.getGradeId(), grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
+            updateGradeVisitors(stub, author, grade.getGradeId(), grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
             if (grade.getStudent().equals(author) || CollectionUtils.containsAny(roles, Set.of("Admin", "Professor"))) {
                 queryResults.add(grade);
             } else {
@@ -192,7 +193,7 @@ public class GradeController implements ContractInterface {
      * @param serializedRoles Serialized roles of author
      * @return All grades in system
      */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String getAllGrades(final Context ctx,
                                final String author,
                                final String serializedRoles) {
@@ -205,8 +206,11 @@ public class GradeController implements ContractInterface {
         QueryResultsIterator<KeyValue> results = stub.getStateByRange("", "");
         for (KeyValue result : results) {
             Grade grade = genson.deserialize(result.getStringValue(), Grade.class);
-            UpdateGrade(ctx, author, serializedRoles, grade.getGradeId(), grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
-            queryResults.add(grade);
+            setNewVisitors(grade.getGradeId(), author, stub);
+            Grade newGrade = new Grade(grade.getGradeId(), grade.getGrade(), currentVisitors, grade.getSubject(), grade.getTeacher(), grade.getTeacher());
+            String newGradeJSON = genson.serialize(newGrade);
+            stub.putStringState(grade.getGradeId(), newGradeJSON);
+            queryResults.add(newGrade);
         }
         return genson.serialize(queryResults);
     }
@@ -236,8 +240,8 @@ public class GradeController implements ContractInterface {
         checkIfGradeDoesNotExists(ctx, gradeId);
         checkIfGradeValueIsCorrect(gradeValue);
         checkRolesForUpdate(roles, author);
-        List<String> visitors = setNewVisitors(gradeId, author, stub);
-        Grade newGrade = new Grade(gradeId, gradeValue, visitors, subject, teacher, student);
+        updateGradeVisitors(stub, author, gradeId, gradeValue, subject, teacher, student);
+        Grade newGrade = new Grade(gradeId, gradeValue, currentVisitors, subject, teacher, student);
         String newGradeJSON = genson.serialize(newGrade);
         stub.putStringState(gradeId, newGradeJSON);
 
@@ -260,7 +264,7 @@ public class GradeController implements ContractInterface {
         checkIfGradeDoesNotExists(ctx, gradeId);
         String gradeJSON = stub.getStringState(gradeId);
         Grade grade = genson.deserialize(gradeJSON, Grade.class);
-        UpdateGrade(ctx, author, serializedRoles, gradeId, grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
+        updateGradeVisitors(stub, author, gradeId, grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
         checkRolesForDeletion(roles, author);
         stub.delState(gradeId);
     }
@@ -293,14 +297,19 @@ public class GradeController implements ContractInterface {
      * @param gradeId Id of grade
      * @param author  Author of query
      * @param stub    Stub to make call
-     * @return List of visitor with author of query
      */
-    private List<String> setNewVisitors(final String gradeId, final String author, final ChaincodeStub stub) {
+    private void setNewVisitors(final String gradeId, final String author, final ChaincodeStub stub) {
         String gradeJSON = stub.getStringState(gradeId);
         Grade oldGrade = genson.deserialize(gradeJSON, Grade.class);
-        List<String> visitors = oldGrade.getVisitors();
-        visitors.add(author);
-        return visitors;
+        currentVisitors = oldGrade.getVisitors();
+        currentVisitors.add(author);
+    }
+
+    private void updateGradeVisitors(final ChaincodeStub stub, final String author, final String gradeId, final Double gradeValue, final String subject, final String teacher, final String student) {
+        setNewVisitors(gradeId, author, stub);
+        Grade newGrade = new Grade(gradeId, gradeValue, currentVisitors, subject, teacher, student);
+        String newGradeJSON = genson.serialize(newGrade);
+        stub.putStringState(gradeId, newGradeJSON);
     }
 
     /**

@@ -172,7 +172,7 @@ public final class GradeControllerTest {
             ChaincodeStub stub = mock(ChaincodeStub.class);
             when(ctx.getStub()).thenReturn(stub);
             when(stub.getStringState("Filip Piwowarczyk0"))
-                    .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\", \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
+                    .thenReturn("{ \"gradeId\": \"Filip Piwowarczyk0\",\"visitors\":[\"Adam Mickiewicz\"], \"grade\": 2.0, \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}");
 
             Throwable thrown = catchThrowable(() -> {
                 contract.ReadGrade(ctx, "John Doe", "Student", "Filip Piwowarczyk0");
@@ -465,5 +465,4 @@ public final class GradeControllerTest {
         }
 
     }
-
 }

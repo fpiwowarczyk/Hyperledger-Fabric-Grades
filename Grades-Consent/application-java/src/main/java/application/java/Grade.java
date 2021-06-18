@@ -2,6 +2,7 @@ package application.java;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
 import java.util.Objects;
 
 public class Grade {
@@ -9,6 +10,8 @@ public class Grade {
     private String gradeId;
     @JsonProperty("grade")
     private Double grade;
+    @JsonProperty("visitors")
+    private List<String> visitors;
     @JsonProperty("subject")
     private String subject;
     @JsonProperty("teacher")
@@ -30,6 +33,14 @@ public class Grade {
 
     public void setGradeValue(Double grade) {
         this.grade = grade;
+    }
+
+    public List<String> getVisitors() {
+        return visitors;
+    }
+
+    public void setVisitors(List<String> visitors) {
+        this.visitors = visitors;
     }
 
     public String getSubject() {
@@ -85,12 +96,13 @@ public class Grade {
                 &&
                 Objects.deepEquals(
                         new Double[]{getGrade()},
-                        new Double[]{that.getGrade()});
+                        new Double[]{that.getGrade()}) &&
+                visitors.equals(that.visitors);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getGradeId(), getGrade(), getSubject(), getTeacher(), getStudent());
+        return Objects.hash(getGradeId(), getGrade(), getVisitors(), getSubject(), getTeacher(), getStudent());
     }
 
     @Override
@@ -98,6 +110,7 @@ public class Grade {
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode())
                 + "[gradeId = " + gradeId
                 + ", grade = " + grade
+                + ", visitors = " + visitors
                 + ", subject = " + subject
                 + ", teacher = " + teacher
                 + ", student = " + student + "]";
