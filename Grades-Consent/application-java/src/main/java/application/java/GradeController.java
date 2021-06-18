@@ -44,7 +44,7 @@ public class GradeController {
         String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
             connectToChain(gateway);
-            result = contract.evaluateTransaction("getAllGrades", currentUser, roles);
+            result = contract.submitTransaction("getAllGrades", currentUser, roles);
         } catch (Exception e) {
             LOGGER.error(e.getMessage(),e);
         }
@@ -58,7 +58,7 @@ public class GradeController {
         try (Gateway gateway = builder.connect()) {
             LOGGER.info("Get grade with id: " + gradeId);
             connectToChain(gateway);
-            result = contract.evaluateTransaction("ReadGrade", currentUser, roles, gradeId);
+            result = contract.submitTransaction("ReadGrade", currentUser, roles, gradeId);
         } catch (Exception e) {
             LOGGER.error(e.getMessage(),e);
         }
@@ -71,7 +71,7 @@ public class GradeController {
         String roles = FileHandler.readRolesFromFile(currentUser, currentOrganization);
         try (Gateway gateway = builder.connect()) {
             connectToChain(gateway);
-            result = contract.evaluateTransaction("getGradesForStudent", currentUser, roles, studentName);
+            result = contract.submitTransaction("getGradesForStudent", currentUser, roles, studentName);
         } catch (Exception e) {
             LOGGER.error(e.getMessage(),e);
         }
@@ -122,7 +122,7 @@ public class GradeController {
         try (Gateway gateway = builder.connect()) {
             LOGGER.info("Delete grade with id: " + gradeId);
             connectToChain(gateway);
-            result = contract.evaluateTransaction("ReadGrade", gradeId);
+            result = contract.submitTransaction("ReadGrade", gradeId);
             contract.submitTransaction("DeleteGrade", currentUser, roles, gradeId);
         } catch (Exception e) {
             LOGGER.error(e.getMessage(),e);

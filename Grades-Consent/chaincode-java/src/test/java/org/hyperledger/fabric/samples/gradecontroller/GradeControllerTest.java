@@ -71,7 +71,7 @@ public final class GradeControllerTest {
             gradesList.add(new MockKeyValue("grade1",
                     "{ \"gradeId\": \"Filip Piwowarczyk4\", \"grade\": 4.0,\"visitors\":[\"Adam Mickiewicz\"], \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Filip Piwowarczyk\"}"));
             gradesList.add(new MockKeyValue("grade1",
-                    "{ \"gradeId\": \"Ola Piwowarczyk0\", \"grade\": 4.0,\"visitors\":[\"Adam Mickiewicz\"], \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Ola Piwowarczyk\"}"));
+                    "{ \"gradeId\": \"Ola Piwowarczyk0\", \"grade\": 4.0,\"visitors\":[\"Adam Mickiewicz\", \"Ola Piwowarczyk\"], \"subject\": \"Math\", \"teacher\": \"Adam Mickiewicz\", \"student\": \"Ola Piwowarczyk\"}"));
         }
 
         @Override
@@ -302,16 +302,27 @@ public final class GradeControllerTest {
             ChaincodeStub stub = mock(ChaincodeStub.class);
             when(ctx.getStub()).thenReturn(stub);
             when(stub.getStateByRange("", "")).thenReturn(new MockGradeResultsIteratorDifferentStudents());
-            when(stub.getStringState(anyString()))
+            when(stub.getStringState("Ola Piwowarczyk0"))
                     .thenReturn("{\"grade\":4.0,\"visitors\":[\"Adam Mickiewicz\"],\"gradeId\":\"Ola Piwowarczyk0\",\"student\":\"Ola Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\"}");
+            when(stub.getStringState("Filip Piwowarczyk0"))
+                    .thenReturn("{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]}");
+            when(stub.getStringState("Filip Piwowarczyk1"))
+                    .thenReturn("{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\"]}");
+            when(stub.getStringState("Filip Piwowarczyk2"))
+                    .thenReturn("{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"History\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\"]}");
+            when(stub.getStringState("Filip Piwowarczyk3"))
+                    .thenReturn("{\"grade\":4.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"Filip Piwowarczyk\"]}");
+            when(stub.getStringState("Filip Piwowarczyk4"))
+                    .thenReturn("{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\"]}");
+
             String grades = contract.getAllGrades(ctx, "admin", "Admin");
 
-            assertThat(grades).isEqualTo("[{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]},"
-                    + "{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]},"
-                    + "{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"History\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]},"
-                    + "{\"grade\":4.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]},"
-                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]},"
-                    + "{\"grade\":4.0,\"gradeId\":\"Ola Piwowarczyk0\",\"student\":\"Ola Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\"]}]");
+            assertThat(grades).isEqualTo("[{\"grade\":2.0,\"gradeId\":\"Filip Piwowarczyk0\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\"]},"
+                    + "{\"grade\":3.0,\"gradeId\":\"Filip Piwowarczyk1\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"PE\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\",\"admin\"]},"
+                    + "{\"grade\":5.0,\"gradeId\":\"Filip Piwowarczyk2\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"History\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\",\"admin\"]},"
+                    + "{\"grade\":4.5,\"gradeId\":\"Filip Piwowarczyk3\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"Filip Piwowarczyk\",\"admin\"]},"
+                    + "{\"grade\":4.0,\"gradeId\":\"Filip Piwowarczyk4\",\"student\":\"Filip Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\",\"admin\"]},"
+                    + "{\"grade\":4.0,\"gradeId\":\"Ola Piwowarczyk0\",\"student\":\"Ola Piwowarczyk\",\"subject\":\"Math\",\"teacher\":\"Adam Mickiewicz\",\"visitors\":[\"Adam Mickiewicz\",\"admin\"]}]");
         }
 
         @Test

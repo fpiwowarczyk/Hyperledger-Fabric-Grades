@@ -206,11 +206,8 @@ public class GradeController implements ContractInterface {
         QueryResultsIterator<KeyValue> results = stub.getStateByRange("", "");
         for (KeyValue result : results) {
             Grade grade = genson.deserialize(result.getStringValue(), Grade.class);
-            setNewVisitors(grade.getGradeId(), author, stub);
-            Grade newGrade = new Grade(grade.getGradeId(), grade.getGrade(), currentVisitors, grade.getSubject(), grade.getTeacher(), grade.getTeacher());
-            String newGradeJSON = genson.serialize(newGrade);
-            stub.putStringState(grade.getGradeId(), newGradeJSON);
-            queryResults.add(newGrade);
+            updateGradeVisitors(stub, author, grade.getGradeId(), grade.getGrade(), grade.getSubject(), grade.getTeacher(), grade.getStudent());
+            queryResults.add(grade);
         }
         return genson.serialize(queryResults);
     }
