@@ -33,23 +33,20 @@ public class GradeController {
     private Contract contract;
     private byte[] result;
     private final ObjectMapper objectMapper;
-    private Path walletPath;
-    private Wallet wallet;
-    private Path networkConfigPath;
     Gateway.Builder builder;
 
 
-    GradeController() throws IOException {
+    public GradeController() throws IOException {
         objectMapper = new ObjectMapper();
     }
 
     @GetMapping("/logIn")
-    public String logIn(@RequestParam Organizations org, @RequestParam String userName) {
+    public void logIn(@RequestParam Organizations org, @RequestParam String userName) {
         //Current location of connection file for organization
-        networkConfigPath = Paths.get("test-network", "organizations", "peerOrganizations", org.name().toLowerCase() + ".example.com", "connection-" + org.name().toLowerCase() + ".yaml");
+        Path networkConfigPath = Paths.get("test-network", "organizations", "peerOrganizations", org.name().toLowerCase() + ".example.com", "connection-" + org.name().toLowerCase() + ".yaml");
         try {
-            walletPath = Paths.get(org.name().toLowerCase() + "Wallet");
-            wallet = Wallets.newFileSystemWallet(walletPath);
+            Path walletPath = Paths.get(org.name().toLowerCase() + "Wallet");
+            Wallet wallet = Wallets.newFileSystemWallet(walletPath);
             builder = Gateway.createBuilder();
             builder.identity(wallet, userName).networkConfig(networkConfigPath).discovery(true);
         } catch (Exception e) {
@@ -57,7 +54,6 @@ public class GradeController {
         }
         String returnMsg = "Successfully logged user " + userName;
         System.out.println(returnMsg);
-        return returnMsg;
     }
 
     @GetMapping("/addWallet")
@@ -173,7 +169,7 @@ public class GradeController {
         Properties props = new Properties();
         HFCAClient caClient = null;
         String mspId = "";
-        props.put("pemFile", "test-network/organizations/peerOrganizations/" + org.name().toLowerCase() + ".example.com/ca/ca." + org.name().toLowerCase() + ".example.com-cert.pem");
+        props.put("pemFile", "../test-network/organizations/peerOrganizations/" + org.name().toLowerCase() + ".example.com/ca/ca." + org.name().toLowerCase() + ".example.com-cert.pem");
         props.put("allowAllHostNames", "true");
 
         if (org.equals(Organizations.ORG1)) {
@@ -207,7 +203,7 @@ public class GradeController {
         HFCAClient caClient = null;
         String mspId = "";
         String affiliation = org.name().toLowerCase() + ".department1";
-        props.put("pemFile", "test-network/organizations/peerOrganizations/" + org.name().toLowerCase() + ".example.com/ca/ca." + org.name().toLowerCase() + ".example.com-cert.pem");
+        props.put("pemFile", "../test-network/organizations/peerOrganizations/" + org.name().toLowerCase() + ".example.com/ca/ca." + org.name().toLowerCase() + ".example.com-cert.pem");
         props.put("allowAllHostNames", "true");
 
         if (org.equals(Organizations.ORG1)) {
