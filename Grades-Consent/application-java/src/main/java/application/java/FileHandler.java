@@ -42,7 +42,7 @@ public class FileHandler {
     }
 
     public static String readRolesFromFile(String username, Organizations org) throws IOException {
-        try (Stream<String> lines = Files.lines(Paths.get(org.name().toLowerCase() + "Wallet/" + username + ".txt"))) {
+        try (Stream<String> lines = Files.lines(Paths.get("../",org.name().toLowerCase() + "Wallet/" + username + ".txt"))) {
             return lines.collect(Collectors.joining(";"));
         }
     }

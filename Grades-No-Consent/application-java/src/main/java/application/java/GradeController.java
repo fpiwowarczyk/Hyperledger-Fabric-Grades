@@ -43,17 +43,20 @@ public class GradeController {
     @GetMapping("/logIn")
     public void logIn(@RequestParam Organizations org, @RequestParam String userName) {
         //Current location of connection file for organization
-        Path networkConfigPath = Paths.get("test-network", "organizations", "peerOrganizations", org.name().toLowerCase() + ".example.com", "connection-" + org.name().toLowerCase() + ".yaml");
+        Path networkConfigPath = Paths.get("../","test-network", "organizations", "peerOrganizations", org.name().toLowerCase() + ".example.com", "connection-" + org.name().toLowerCase() + ".yaml");
         try {
             Path walletPath = Paths.get(org.name().toLowerCase() + "Wallet");
             Wallet wallet = Wallets.newFileSystemWallet(walletPath);
             builder = Gateway.createBuilder();
             builder.identity(wallet, userName).networkConfig(networkConfigPath).discovery(true);
+            String returnMsg = "Successfully logged user " + userName;
+            System.out.println(returnMsg);
         } catch (Exception e) {
             LOGGER.error("No such user as " + userName);
+            String returnMsg = "No such user as " + userName;
+            System.out.println(returnMsg);
         }
-        String returnMsg = "Successfully logged user " + userName;
-        System.out.println(returnMsg);
+
     }
 
     @GetMapping("/addWallet")
